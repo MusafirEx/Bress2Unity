@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0-preview.2] - 2026-10-23
+
+- Fix the two Unity 2022.3 compilation errors in `BrresRigBuilder.cs`: `HumanDescription.legTwist` is replaced with `HumanDescription.lowerLegTwist`, and the unavailable `HumanDescription.rootMotionBoneName` assignment is removed.
+- Preserve the Model / Rig / Animations importer tabs, Generic/Humanoid/Legacy/None options, CHR0 decoder and BRRES face-winding repair.
+- **Verification pending:** recompile the updated Git UPM package in Unity 2022.3 and validate generated Avatar behavior.
+
+
 ## [0.6.0-preview.1] - 2026-10-23
 
 - Add an FBX-style **Model / Rig / Animations** Inspector to the native BRRES/MDL0 ScriptedImporter, with Apply / Revert controls.
