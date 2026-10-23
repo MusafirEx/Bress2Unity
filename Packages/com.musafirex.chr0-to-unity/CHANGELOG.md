@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0-preview.2] - 2026-10-23
+
+- Fix MOT import failure in Unity 2022.3: `InvalidOperationException: Failed to add object of type MotArchiveInfo` at `MotNativeImporter.cs:62`.
+- Move the public `MotArchiveInfo : ScriptableObject` to its matching `MotArchiveInfo.cs` script, with new Unity GUID metadata.
+- Move serializable `MotSlotInfo` alongside the manifest class.
+- Keep MOT parsing/clip creation behavior unchanged, and leave the tested BRRES/CHR0 importer untouched.
+- After installing this patch, **Reimport** affected `.mot` assets to regenerate their archive manifest and AnimationClip sub-assets.
+- Rotation decoding remains experimental; successful import does not yet establish accurate original game rotations.
+
+
 ## [0.4.0-preview.1] - 2026-10-23
 
 - Add experimental native `.mot` ScriptedImporter for Eighting MOT archives containing GNTA animation slots.
