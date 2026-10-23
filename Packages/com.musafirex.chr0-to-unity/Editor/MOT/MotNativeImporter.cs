@@ -10,25 +10,6 @@ using UnityEngine;
 
 namespace MusafirEx.Mot
 {
-    [Serializable]
-    internal sealed class MotSlotInfo
-    {
-        public string name;
-        public int slot;
-        public int byteLength;
-        public bool clipGenerated;
-        public string report;
-    }
-
-    internal sealed class MotArchiveInfo : ScriptableObject
-    {
-        public string source;
-        public string rig;
-        public int slotCount;
-        public int exportedClips;
-        public List<MotSlotInfo> slots = new List<MotSlotInfo>();
-    }
-
     [ScriptedImporter(1, "mot")]
     public sealed class MotNativeImporter : ScriptedImporter
     {
