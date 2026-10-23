@@ -12,6 +12,21 @@ This implementation adds Unity's `ScriptedImporter` for `.brres` and `.mdl0` in 
 - Embedded TEX0 to Unity Texture2D for I4, I8, IA4, IA8, RGB565, RGB5A3, RGBA8, CMPR formats.
 - Direct asset import (Unity Mesh, Texture2D, Material, GameObject) without spawning nintoolbox, running native executables, or creating intermediate GLB files.
 
+## Materials tab — v0.7.0-preview.1
+
+The native importer Inspector now provides **Model, Rig, Animations, Materials** tabs.
+
+- **Import Materials:** on by default. When disabled, MDL0 material slots are still indexed, but no generated or external materials are assigned to mesh renderers.
+- **Generated Material Shader:** optionally select a shader to replace the default Lit shader chosen for Standard, URP or HDRP. Embedded TEX0 references are populated when the source's material texture names can be resolved.
+- **Material list:** every MDL0 material slot is recorded in `BrresMaterialManifest` using `mat_<modelIndex>_<materialIndex>_<sanitizedSourceName>`, matching the pre-existing sub-asset IDs. The Inspector lists each slot, source texture and its generated Unity material, even if names repeat.
+- **External Material:** assign an existing project `.mat` asset in the corresponding slot; click **Apply** to assign it to the importer-generated model's renderer. An override may not reference a Material sub-asset from the **same** BRRES; use Extract Materials first.
+- **Extract Materials...:** select a folder **under `Assets`**; the tool clones the generated Unity materials to editable `.mat` assets, records overrides for each slot, and triggers a reimport. This does not convert Nintendo TEV shader setups to equivalent Unity shaders. Extracted assets may still reference textures embedded in the BRRES.
+- **Clear Overrides:** clear override slots, then click Apply to revert to the generated materials.
+
+The importer version was bumped to 5 so existing `.brres` files can regenerate their manifest/materials when the package updates. Importing animations in CHR0-only BRRES remains supported (the Materials list is empty).
+
+**Status:** implementation and GitHub files verified; the updated Materials Inspector and extraction functionality are not yet Unity Editor tested. For precise Wii material reproduction, a separate shader/TEV mapping implementation would be needed.
+
 ## Rig / Avatar generation — v0.6.0-preview.1
 
 The custom BRRES ScriptedImporter now shows **Model / Rig / Animations** tabs (an FBX-like Inspector). This does **not** replace Unity's built-in FBX ModelImporter. The Rig tab selects None, Legacy, Generic (default), or Humanoid. Generic uses `AvatarBuilder.BuildGenericAvatar`, and Humanoid uses `AvatarBuilder.BuildHumanAvatar` with editable bone name mappings and Unity's `Avatar.isValid` check. Each generated Avatar is embedded as an importer sub-asset and assigned to an Animator on the actual MDL0 child, preserving existing CHR0 path bindings.
