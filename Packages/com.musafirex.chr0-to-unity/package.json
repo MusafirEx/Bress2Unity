@@ -1,8 +1,8 @@
 {
   "name": "com.musafirex.chr0-to-unity",
-  "version": "0.3.0-preview.1",
-  "displayName": "Wii BRRES / CHR0 Unity Importer",
-  "description": "Import Wii BRRES/MDL0 models and embedded CHR0 animations as Unity sub-assets; also convert extracted CHR0 to .anim files using a selected rig.",
+  "version": "0.4.0-preview.1",
+  "displayName": "Bress2Unity — BRRES / CHR0 / MOT Importer",
+  "description": "Unity Editor importer for Wii BRRES/MDL0 models, embedded and standalone CHR0, and experimental Eighting MOT/GNTA multi-clip animation archives.",
   "unity": "2022.3",
   "documentationUrl": "https://github.com/MusafirEx/Bress2Unity#readme",
   "changelogUrl": "https://github.com/MusafirEx/Bress2Unity/blob/main/Packages/com.musafirex.chr0-to-unity/CHANGELOG.md",
@@ -16,7 +16,10 @@
     "Wii",
     "Unity",
     "AnimationClip",
-    "ScriptedImporter"
+    "ScriptedImporter",
+    "MOT",
+    "GNTA",
+    "Eighting"
   ],
   "author": {
     "name": "Musafir Ex",
