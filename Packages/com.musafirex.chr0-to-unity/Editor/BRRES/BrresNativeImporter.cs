@@ -15,7 +15,7 @@ namespace MusafirEx.Brres
     public enum BrresRigType { None=0, Legacy=1, Generic=2, Humanoid=3 }
     public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
 
-    [ScriptedImporter(4, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(5, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -30,6 +30,14 @@ namespace MusafirEx.Brres
         public bool importTextures = true;
         [Tooltip("Create a skinned renderer when the source has weighted bone/node data; otherwise create a static MeshRenderer.")]
         public bool importSkinning = true;
+
+        [Header("Materials")]
+        [Tooltip("Import approximate Unity materials derived from MDL0 and embedded TEX0 resources.")]
+        public bool importMaterials = true;
+        [Tooltip("Optional Unity shader for generated BRRES materials. Leave unset to choose the Standard/URP/HDRP Lit shader automatically.")]
+        public Shader materialShaderOverride;
+        [Tooltip("Assign external Material assets to specific MDL0 material slots, keyed by model/material index.")]
+        public List<BrresMaterialOverride> materialOverrides = new List<BrresMaterialOverride>();
 
         [Header("Rig")]
         [Tooltip("None: no Animator. Legacy: Animation component. Generic: Unity Generic Avatar. Humanoid: validated Humanoid Avatar if bone mapping/rest pose permit.")]
@@ -92,12 +100,24 @@ namespace MusafirEx.Brres
                 context.AddObjectToAsset("root",root);
                 context.SetMainObject(root);
 
+                // Keep stable material slot keys for the Materials Inspector.
+                // A manifest is also generated for BRRES files with no models.
+                var materialManifest=ScriptableObject.CreateInstance<BrresMaterialManifest>();
+                materialManifest.name=root.name+"_Materials";
+                context.AddObjectToAsset("brres_materials",materialManifest);
+
                 var textures = importTextures ? parser.LoadTextures(records,warnings) : new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
                 int texIndex=0;
                 foreach(var kv in textures)
                 {
                     kv.Value.name=kv.Key;
                     context.AddObjectToAsset("tex_"+(texIndex++)+"_"+Safe(kv.Key),kv.Value);
+                }
+                if(importMaterials && materialShaderOverride!=null)
+                {
+                    string shaderPath=AssetDatabase.GetAssetPath(materialShaderOverride);
+                    if(!string.IsNullOrEmpty(shaderPath) && shaderPath!=context.assetPath)
+                        context.DependsOnSourceAsset(shaderPath);
                 }
                 var modelRoots = new List<GameObject>();
                 int automaticallyCorrectedMeshes=0;
@@ -136,25 +156,58 @@ namespace MusafirEx.Brres
                     var materials=new Material[parsed.MaterialNames.Count];
                     for(int i=0;i<materials.Length;i++)
                     {
-                        Shader shader=null;
-                        var pipeline=GraphicsSettings.currentRenderPipeline;
-                        if(pipeline==null) shader=Shader.Find("Standard");
-                        else if(pipeline.GetType().Name.Contains("HDRenderPipeline")) shader=Shader.Find("HDRP/Lit");
-                        else shader=Shader.Find("Universal Render Pipeline/Lit");
-                        if(shader==null)shader=Shader.Find("Standard");
-                        if(shader==null)shader=Shader.Find("Unlit/Texture");
-                        if(shader==null)throw new InvalidOperationException("Unity material shader not available");
-                        var mat=new Material(shader);
-                        mat.name=parsed.MaterialNames[i]??("Material_"+i);
-                        Texture2D tex;
+                        string materialName=parsed.MaterialNames[i]??("Material_"+i);
+                        string slotKey="mat_"+assetSerial+"_"+i+"_"+Safe(materialName);
                         string textureName=i<parsed.MaterialTextures.Count?parsed.MaterialTextures[i]:null;
-                        if(!string.IsNullOrEmpty(textureName)&&textures.TryGetValue(textureName,out tex))
+                        Material generated=null;
+                        if(importMaterials)
                         {
-                            if(mat.HasProperty("_BaseMap"))mat.SetTexture("_BaseMap",tex);
-                            if(mat.HasProperty("_MainTex"))mat.SetTexture("_MainTex",tex);
+                            Shader shader=materialShaderOverride;
+                            if(shader==null)
+                            {
+                                var pipeline=GraphicsSettings.currentRenderPipeline;
+                                if(pipeline==null)shader=Shader.Find("Standard");
+                                else if(pipeline.GetType().Name.Contains("HDRenderPipeline"))shader=Shader.Find("HDRP/Lit");
+                                else shader=Shader.Find("Universal Render Pipeline/Lit");
+                                if(shader==null)shader=Shader.Find("Standard");
+                                if(shader==null)shader=Shader.Find("Unlit/Texture");
+                            }
+                            if(shader==null)throw new InvalidOperationException("Unity material shader not available");
+                            generated=new Material(shader);
+                            generated.name=materialName;
+                            Texture2D tex;
+                            if(!string.IsNullOrEmpty(textureName)&&textures.TryGetValue(textureName,out tex))
+                            {
+                                if(generated.HasProperty("_BaseMap"))generated.SetTexture("_BaseMap",tex);
+                                if(generated.HasProperty("_MainTex"))generated.SetTexture("_MainTex",tex);
+                            }
+                            // Keep the identifier from older versions to preserve
+                            // references to imported Material sub-assets.
+                            context.AddObjectToAsset(slotKey,generated);
                         }
-                        context.AddObjectToAsset("mat_"+assetSerial+"_"+i+"_"+Safe(mat.name),mat);
-                        materials[i]=mat;
+                        materialManifest.entries.Add(new BrresMaterialEntry {
+                            key=slotKey, sourceName=materialName,
+                            modelName=modelRoot.name, modelIndex=assetSerial,
+                            materialIndex=i, textureName=textureName,
+                            generatedMaterial=generated
+                        });
+                        Material assigned=generated;
+                        if(importMaterials && materialOverrides!=null)
+                        {
+                            foreach(var entry in materialOverrides)
+                            {
+                                if(entry==null || entry.key!=slotKey || entry.material==null)continue;
+                                string externalPath=AssetDatabase.GetAssetPath(entry.material);
+                                if(!string.IsNullOrEmpty(externalPath) && externalPath!=context.assetPath)
+                                {
+                                    context.DependsOnSourceAsset(externalPath);
+                                    assigned=entry.material;
+                                }
+                                else warnings.Add("Material "+materialName+": external override must be an asset outside this BRRES file.");
+                                break;
+                            }
+                        }
+                        materials[i]=assigned;
                     }
                     for(int i=0;i<parsed.Meshes.Count;i++)
                     {
