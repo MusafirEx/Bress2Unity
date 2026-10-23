@@ -1,6 +1,6 @@
 # Bress2Unity — Native BRRES / CHR0 Unity Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.6.0-preview.1**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.6.0-preview.2**
 
 One Unity package with two Editor tools:
 
@@ -11,7 +11,7 @@ One Unity package with two Editor tools:
 
 **Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
 
-## FBX-style Rig import settings — v0.6.0-preview.1
+## FBX-style Rig import settings — v0.6.0-preview.2
 
 Select an imported `.brres` or `.mdl0` asset in the Unity **Project** window. Bress2Unity now provides a custom Inspector with **Model**, **Rig**, and **Animations** tabs, similar to FBX Rig settings.
 
