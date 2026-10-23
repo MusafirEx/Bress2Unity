@@ -1,6 +1,6 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.4.0-preview.1 — Unity 2022.3 LTS, Editor-only**
+**Version 0.4.0-preview.2 — Unity 2022.3 LTS, Editor-only**
 
 This Unity package combines three tools:
 
@@ -9,7 +9,11 @@ This Unity package combines three tools:
 
 **Unity-tested milestone (23 October 2026):** The user confirmed this package's BRRES model and CHR0 animation workflows work in Unity. The [tested source snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) is preserved in a separate Git branch. The importer remains **preview/beta** for unsupported model variants, advanced Wii materials and skinning edge cases.
 
-## Experimental MOT / GNTA animation import (v0.4.0-preview.1)
+## Experimental MOT / GNTA animation import (v0.4.0-preview.2)
+
+**MOT importer hotfix (0.4.0-preview.2):** Unity 2022.3 previously threw `Failed to add object of type MotArchiveInfo` when importing `.mot`. The manifest ScriptableObject now lives in its own matching `MotArchiveInfo.cs` file. Update the Git package and **Reimport** affected MOT assets. The original BRRES/CHR0 importer is unchanged.
+
+
 
 **New: native `.mot` import, no extraction step needed.** MOT/GNTA is a different animation format from BRRES/CHR0 and is kept in its own isolated importer.
 
