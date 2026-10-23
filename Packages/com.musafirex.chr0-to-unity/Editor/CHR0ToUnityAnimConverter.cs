@@ -187,6 +187,70 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
         return true;
     }
 
+    // Reuse the tested CHR0 decoder for clips discovered inside BRRES archives.
+    // The binary buffer may include the trailing BRRES shared string pool.
+    // Do not copy only CHR0's declared size: string pointers can reach outside it.
+    internal static string[] GetEmbeddedBoneNames(byte[] bytes)
+    {
+        Chr0Clip decoded = DecodeChr0(bytes);
+        var names = new string[decoded.Bones.Count];
+        for (int i = 0; i < names.Length; i++) names[i] = decoded.Bones[i].Name;
+        return names;
+    }
+
+    internal static int CountEmbeddedBoneMatches(byte[] bytes, GameObject root)
+    {
+        if (root == null) return 0;
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true)) names.Add(t.name);
+        int matched = 0;
+        foreach (string name in GetEmbeddedBoneNames(bytes)) if (names.Contains(name)) matched++;
+        return matched;
+    }
+
+    internal static AnimationClip CreateEmbeddedAnimation(byte[] bytes, string name, GameObject root,
+        int fps, int axis, bool respectLoop, out int matched)
+    {
+        Chr0Clip decoded = DecodeChr0(bytes);
+        var targets = new Dictionary<string, Transform>(StringComparer.Ordinal);
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal);
+        GameObject fallback = null;
+        try
+        {
+            if (root != null)
+            {
+                foreach (Transform child in root.transform)
+                    CollectTransforms(child, child.name, targets, paths);
+                if (!targets.ContainsKey(root.name))
+                {
+                    targets[root.name] = root.transform;
+                    paths[root.name] = "";
+                }
+            }
+            else
+            {
+                // Animation-only BRRES: generic bone-name curves are viewable as sub-assets.
+                // They are NOT guaranteed to match the full path hierarchy of a real model.
+                fallback = new GameObject("__CHR0_Import_BindDefaults");
+                foreach (Chr0Bone bone in decoded.Bones)
+                {
+                    targets[bone.Name] = fallback.transform;
+                    paths[bone.Name] = bone.Name;
+                }
+            }
+            matched = 0;
+            foreach (Chr0Bone bone in decoded.Bones)
+                if (targets.ContainsKey(bone.Name)) matched++;
+            if (root != null && matched == 0)
+                throw new InvalidDataException("No CHR0 bone names match the selected model: " + name);
+            return CreateClip(name, decoded, targets, paths, fps, axis, respectLoop);
+        }
+        finally
+        {
+            if (fallback != null) UnityEngine.Object.DestroyImmediate(fallback);
+        }
+    }
+
     private static AnimationClip CreateClip(string name, Chr0Clip source,
         Dictionary<string, Transform> targets, Dictionary<string, string> paths,
         int fps, int axis, bool copyLoop)
