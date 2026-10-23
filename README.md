@@ -1,6 +1,6 @@
 # CHR0 → Unity + Native BRRES/MDL0 Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.2.0-preview.1**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.3.0-preview.1**
 
 One Unity package with two Editor tools:
 
@@ -8,6 +8,35 @@ One Unity package with two Editor tools:
 - **BRRES/MDL0 → Unity model asset:** New **experimental native importer** for Wii models, skeletons, meshes and supported TEX0 textures. No nintoolbox program and no intermediate GLB are needed for supported models.
 
 > **Status:** BRRES/MDL0 importer has been validated with binary structure and reference triangle/texture data, but **has not yet been compiled and visually tested in Unity**. The BRRES importer and skinning are beta. MOT/GNTA conversion is not supported.
+
+## Embedded CHR0 animations inside BRRES (v0.3.0-preview.1)
+
+**Supported archive layouts:** `MDL0` only; `MDL0 + one or many CHR0`; or `CHR0` only (no model). The BRRES reader discovers every `CHR0` resource rather than assuming one animation per archive.
+
+When you drag a BRRES into Unity's `Assets` folder, the importer creates `AnimationClip` **sub-assets** for each supported embedded CHR0 (NW4R CHR0 v5). Expand the imported BRRES in the Project window to see its clips. A BRRES containing a model will try to map CHR0 bones to its imported skeleton by name. For BRRES files containing several models, it selects the model with the most matching bone names.
+
+**Animation-only BRRES** (for example, `mot_em001.brres`) now imports without the previous `No MDL0 resource found` error. Because it contains no skeleton hierarchy, clips are generated with **generic one-level bone paths by default**. They are visible, but they might not animate your actual model correctly until rebound.
+
+### Export correctly bound clips for a separate model
+
+1. Import both the animation BRRES and a compatible model into Unity.
+2. Put a model instance into the Unity **Hierarchy**.
+3. Select the animation BRRES in the Project window.
+4. Open **Tools → MH → CHR0 from BRRES...**.
+5. Assign the desired **Model root (Hierarchy)** to the model containing the correct bone tree.
+6. Click **Analyze BRRES** to see every CHR0 and its matched bone count.
+7. Click **Generate .anim files** to write native clips to `Assets/CHR0Animations` (configurable).
+
+The converter reuses the existing CHR0 v5 decoder, including I4/I6/I12/L1/L2/L4 data decoding and existing position/rotation/scale logic.
+
+**Importer Inspector settings:** `Import Animations`, `Animation Rig` (optional prefab asset when model is in a different BRRES), `Animation FPS`, `Animation Axis`, and `Animation Loop`. The Inspector rig asset can be used for automatic CHR0 binding; a **scene hierarchy model** can be assigned in the separate Editor window.
+
+### Shared strings and format limitations
+
+NW4R BRRES may store CHR0 bone names in its **shared string pool**, beyond the CHR0 resource's declared byte length. The importer keeps the source archive's trailing bytes available so those strings can resolve. Data parsing is bounds-checked.
+
+Only **CHR0 v5** is supported by the shared decoder. Other animation formats, including **MOT/GNTA, SRT0, PAT0 and VIS0**, are **not** converted by this feature. Animation-only files with no model cannot guarantee full bone paths without a rig.
+
 
 ## Install with Unity Package Manager
 
