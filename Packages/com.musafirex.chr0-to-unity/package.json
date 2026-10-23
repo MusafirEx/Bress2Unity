@@ -1,6 +1,6 @@
 {
   "name": "com.musafirex.chr0-to-unity",
-  "version": "0.4.0-preview.1",
+  "version": "0.4.0-preview.2",
   "displayName": "Bress2Unity — BRRES / CHR0 / MOT Importer",
   "description": "Unity Editor importer for Wii BRRES/MDL0 models, embedded and standalone CHR0, and experimental Eighting MOT/GNTA multi-clip animation archives.",
   "unity": "2022.3",
