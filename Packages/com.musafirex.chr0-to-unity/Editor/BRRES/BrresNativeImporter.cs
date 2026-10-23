@@ -84,7 +84,11 @@ namespace MusafirEx.Brres
                     var materials=new Material[parsed.MaterialNames.Count];
                     for(int i=0;i<materials.Length;i++)
                     {
-                        Shader shader=Shader.Find("Universal Render Pipeline/Lit");
+                        Shader shader=null;
+                        var pipeline=GraphicsSettings.currentRenderPipeline;
+                        if(pipeline==null) shader=Shader.Find("Standard");
+                        else if(pipeline.GetType().Name.Contains("HDRenderPipeline")) shader=Shader.Find("HDRP/Lit");
+                        else shader=Shader.Find("Universal Render Pipeline/Lit");
                         if(shader==null)shader=Shader.Find("Standard");
                         if(shader==null)shader=Shader.Find("Unlit/Texture");
                         if(shader==null)throw new InvalidOperationException("Unity material shader not available");
