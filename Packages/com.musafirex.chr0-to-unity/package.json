@@ -1,6 +1,6 @@
 {
   "name": "com.musafirex.chr0-to-unity",
-  "version": "0.6.0-preview.1",
+  "version": "0.6.0-preview.2",
   "displayName": "Bress2Unity — BRRES / CHR0 / Rig Importer",
   "description": "Import Wii BRRES/MDL0 models, meshes, textures and CHR0 animations into Unity with configurable Generic, Humanoid, Legacy and None rig modes and Avatar generation.",
   "unity": "2022.3",
