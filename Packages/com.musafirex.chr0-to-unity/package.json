@@ -4,9 +4,9 @@
   "displayName": "Wii BRRES / CHR0 Unity Importer",
   "description": "Import Wii BRRES/MDL0 models and embedded CHR0 animations as Unity sub-assets; also convert extracted CHR0 to .anim files using a selected rig.",
   "unity": "2022.3",
-  "documentationUrl": "https://github.com/MusafirEx/CHR0_2_Unity#readme",
-  "changelogUrl": "https://github.com/MusafirEx/CHR0_2_Unity/blob/main/Packages/com.musafirex.chr0-to-unity/CHANGELOG.md",
-  "licensesUrl": "https://github.com/MusafirEx/CHR0_2_Unity/blob/main/LICENSE",
+  "documentationUrl": "https://github.com/MusafirEx/Bress2Unity#readme",
+  "changelogUrl": "https://github.com/MusafirEx/Bress2Unity/blob/main/Packages/com.musafirex.chr0-to-unity/CHANGELOG.md",
+  "licensesUrl": "https://github.com/MusafirEx/Bress2Unity/blob/main/LICENSE",
   "keywords": [
     "CHR0",
     "BRRES",
