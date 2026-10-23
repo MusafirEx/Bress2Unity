@@ -2,6 +2,16 @@
 
 ## [0.3.0-preview.1] - 2026-10-23
 
+### Unity-tested milestone — confirmed 2026-10-23
+
+User confirmed the current Unity 2022.3 project workflow works after installing this Git UPM package, including native BRRES model import and CHR0 animation import from BRRES archives. This includes the model/animation importer workflow and separate animation-only BRRES support discussed for `mot_em001.brres`.
+
+- **Milestone:** first user-confirmed working Unity version.
+- **Frozen code snapshot:** [`milestone/v0.3.0-preview.1-unity-tested`](https://github.com/MusafirEx/CHR0_2_Unity/tree/milestone/v0.3.0-preview.1-unity-tested).
+- **Snapshot commit:** `cd543e5a85324ad30a53bafb58519f2d47a32c76`.
+- **Scope:** successful testing in the user's project; **not** a claim that all Wii game variants, GX/TEV materials, shader pipelines, or skinning edge cases have been exhaustively validated.
+- No converter/parser source code changed as part of marking this milestone.
+
 - Recognize CHR0 animation resources in BRRES alongside MDL0, TEX0 and PLT0.
 - Permit animation-only BRRES files (with no MDL0) to import instead of throwing an error.
 - Import multiple CHR0 v5 AnimationClip sub-assets directly from a BRRES archive.
