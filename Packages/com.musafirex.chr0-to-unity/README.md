@@ -7,7 +7,7 @@ This Unity package combines two tools:
 1. **CHR0 → Unity `.anim`**: the existing tested NW4R CHR0 animation converter, unchanged.
 2. **BRRES / MDL0 → Unity model asset (beta)**: a new, **managed C# ScriptedImporter** that reads Wii models directly in the Editor without running nintoolbox or writing a GLB file.
 
-The BRRES/MDL0 importer is **experimental**. Its first-pass binary parser has been validated against a sample BRRES and the reference GLB geometry/texture counts, but **it has not yet passed a real Unity compilation and visual/skinning test**.
+**Unity-tested milestone (23 October 2026):** The user confirmed this package's BRRES model and CHR0 animation workflows work in Unity. The [tested source snapshot](https://github.com/MusafirEx/CHR0_2_Unity/tree/milestone/v0.3.0-preview.1-unity-tested) is preserved in a separate Git branch. The importer remains **preview/beta** for unsupported model variants, advanced Wii materials and skinning edge cases.
 
 ## Embedded CHR0 animations inside BRRES (v0.3.0-preview.1)
 
