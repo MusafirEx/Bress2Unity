@@ -1,6 +1,6 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.5.0-preview.1 — Unity 2022.3 LTS, Editor-only**
+**Version 0.6.0-preview.1 — Unity 2022.3 LTS, Editor-only**
 
 This Unity package combines two Editor tools:
 
@@ -8,6 +8,31 @@ This Unity package combines two Editor tools:
 2. **CHR0 → Unity `.anim` or AnimationClip sub-assets:** the already-tested CHR0 animation converter, including CHR0 resources embedded in BRRES.
 
 **Unity-tested milestone (23 October 2026):** The user confirmed this package's BRRES model and CHR0 animation workflows work in Unity. The [tested source snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) is preserved in a separate Git branch. The importer remains **preview/beta** for unsupported model variants, advanced Wii materials and skinning edge cases.
+
+## FBX-style Rig import settings — v0.6.0-preview.1
+
+Select an imported `.brres` or `.mdl0` asset in the Unity **Project** window. Bress2Unity now provides a custom Inspector with **Model**, **Rig**, and **Animations** tabs, similar to FBX Rig settings.
+
+On the **Rig** tab, choose **Animation Type**:
+
+| Option | Result |
+|---|---|
+| **Generic** (default) | Build a Unity Generic `Avatar` sub-asset for each MDL0 model; attach an `Animator` to that model's child GameObject; preserve exact Wii bone hierarchy and CHR0 transform paths |
+| **Humanoid** | Attempt to build a Unity Humanoid `Avatar` with editable source-bone mappings and attach an `Animator` only if the Avatar is valid |
+| **Legacy** | Add an `Animation` component and set embedded CHR0 AnimationClips to Legacy; no Avatar |
+| **None** | Import model and optional CHR0 clip sub-assets without generating an Animator, Animation component, or Avatar |
+
+**Avatar Definition:** **Create From This Model** or **Copy From Other Avatar**. The latter references an existing external Avatar asset; it must match the requested Generic/Humanoid type. Unity Avatar sub-assets appear when expanding the imported BRRES asset in the Project window. No native `ModelImporter` tab is used; this is an equivalent custom `ScriptedImporter` Inspector.
+
+**Generic Root Motion Bone:** `Y` by default, matching `0000.brres`. Clear this field to disable root motion when creating the Avatar. `Animator.applyRootMotion` defaults to off so existing CHR0 movement behavior stays unchanged.
+
+**Humanoid mapping:** The Inspector provides editable bone names with defaults for the selected NW4R skeleton: `hip`→Hips, `waist`→Spine, `breast`→Chest, `neck`→Neck, `head`→Head, `L_harm`/`R_harm`→Upper Arms, `L_larm`/`R_larm`→Lower Arms, `L_hand`/`R_hand`→Hands, `L_hleg`/`R_hleg`→Upper Legs, `L_lleg`/`R_lleg`→Lower Legs, and `L_foot`/`R_foot`→Feet. Shoulder defaults are `L_collar` and `R_collar`.
+
+**Important:** Humanoid acceptance requires a human-compatible bone hierarchy, orientations and suitable T-pose; matching names alone is not enough. If Unity refuses the generated Humanoid Avatar, the model/animations still import and Unity issues a warning. CHR0 transform-property clips are **not automatically converted to humanoid muscle curves** and cannot be assumed to retarget like Unity-imported humanoid FBX clips. **Use Generic for reliable original CHR0 animations.**
+
+The `Animator` is attached to the imported **MDL0 model child**, not the outer BRRES container, so animation paths continue to match the previously generated CHR0 clips. If an imported BRRES contains multiple MDL0 models, each model gets its own Avatar/Animator.
+
+**To test:** Update the Git package, select `0000.brres`, choose **Rig → Generic → Create From This Model**, click **Apply**, then expand the BRRES and inspect its generated Avatar and model's Animator. After that, try **Humanoid** and check the Console for `Avatar.isValid` diagnostics. **Unity Editor compilation and real Avatar validation have not yet been performed for this update.**
 
 ## Automatic MDL0 face winding correction (v0.5.0-preview.1)
 
