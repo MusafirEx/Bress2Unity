@@ -1,6 +1,6 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.6.0-preview.2 — Unity 2022.3 LTS, Editor-only**
+**Version 0.7.0-preview.1 — Unity 2022.3 LTS, Editor-only**
 
 This Unity package combines two Editor tools:
 
@@ -9,7 +9,21 @@ This Unity package combines two Editor tools:
 
 **Unity-tested milestone (23 October 2026):** The user confirmed this package's BRRES model and CHR0 animation workflows work in Unity. The [tested source snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) is preserved in a separate Git branch. The importer remains **preview/beta** for unsupported model variants, advanced Wii materials and skinning edge cases.
 
-## FBX-style Rig import settings — v0.6.0-preview.2
+## FBX-style Materials tab — v0.7.0-preview.1
+
+The BRRES/MDL0 `ScriptedImporter` Inspector now includes **Model / Rig / Animations / Materials** tabs, with working per-material controls.
+
+On **Materials**, choose **Import Materials** (enabled by default) and optionally select a **Generated Material Shader**. The importer uses an appropriate built-in Standard/URP/HDRP Lit shader by default and assigns decoded TEX0 textures when available. The source format's complete Nintendo TEV shading is **not** reproduced.
+
+Each source MDL0 material is listed with its source name, model/slot indexes, referenced source texture, its generated Material and an **External Material** field. Assign an existing `.mat` asset to replace the Material used by that slot's `MeshRenderer` or `SkinnedMeshRenderer`, then click **Apply**.
+
+**Extract Materials...** opens a folder picker. Choose a folder **inside the current project's `Assets` folder**; Bress2Unity copies all generated materials into new editable `.mat` files, sets them as external overrides, and reimports the BRRES. Names include the model and material slot index, so duplicate MDL0 names do not collide. Use **Clear Overrides** and **Apply** to restore generated materials. Shader/texture data are copied, but extracted materials can still reference texture sub-assets from the original BRRES.
+
+The importer keeps existing stable material sub-asset identifiers, stores per-material override keys, and now creates a `BrresMaterialManifest` sub-asset containing slot metadata. Importer revision **5** triggers a fresh asset import.
+
+**Limitations:** Bress2Unity does not automatically translate advanced Wii TEV multi-stage shaders or PLT0 palettes. Editing extracted `.mat` files does not change the source `.brres`. This Materials tab has been committed and statically audited, but **Unity 2022.3 Editor compilation, extraction and renderer assignment still require testing**.
+
+## FBX-style Rig import settings — v0.6.0-preview.1
 
 Select an imported `.brres` or `.mdl0` asset in the Unity **Project** window. Bress2Unity now provides a custom Inspector with **Model**, **Rig**, and **Animations** tabs, similar to FBX Rig settings.
 
