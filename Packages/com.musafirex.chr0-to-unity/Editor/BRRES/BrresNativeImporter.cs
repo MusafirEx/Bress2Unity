@@ -12,11 +12,13 @@ using UnityEditor.Animations;
 
 namespace MusafirEx.Brres
 {
-    [ScriptedImporter(2, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(3, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
         public bool flipX = true;
+        [Tooltip("Manually reverse triangle faces AFTER automatic correction. Leave disabled normally; enable only for unusual BRRES files still facing the wrong way.")]
+        public bool reverseFaceWinding = false;
         [Tooltip("Flip source UV V coordinate to match imported Wii textures.")]
         public bool flipUV = true;
         [Tooltip("Model unit scale (1 preserves the original BRRES / MDL0 units).")]
@@ -63,6 +65,7 @@ namespace MusafirEx.Brres
                     context.AddObjectToAsset("tex_"+(texIndex++)+"_"+Safe(kv.Key),kv.Value);
                 }
                 var modelRoots = new List<GameObject>();
+                int automaticallyCorrectedMeshes=0;
                 int assetSerial=0;
                 foreach(var resource in modelResources)
                 {
@@ -125,10 +128,21 @@ namespace MusafirEx.Brres
                         mesh.name=src.Name;
                         if(src.Positions.Count>65535)mesh.indexFormat=IndexFormat.UInt32;
                         mesh.SetVertices(src.Positions);
-                        // Basis reflection reverses handedness; reverse triangle winding accordingly.
+                        // First account for the handedness reflection. The source GX
+                        // primitive decoder already reverses Wii's hardware winding.
                         int[] indices=src.Triangles.ToArray();
-                        if(flipX)for(int f=0;f+2<indices.Length;f+=3)
-                        {int tmp=indices[f+1];indices[f+1]=indices[f+2];indices[f+2]=tmp;}
+                        if(flipX) ReverseTriangleWinding(indices);
+                        // Some Wii titles store geometry with the opposite face winding
+                        // from their AUTHORED normals (e.g. the user's 0000.brres), while
+                        // others are already correct (e.g. axe001.brres). Detect this
+                        // per mesh, instead of forcing a global reversal on all BRRES.
+                        if(src.HasNormal && NeedsFaceWindingCorrection(src.Positions,src.Normals,indices))
+                        {
+                            ReverseTriangleWinding(indices);
+                            automaticallyCorrectedMeshes++;
+                        }
+                        // Explicit Inspector override for unusual assets only.
+                        if(reverseFaceWinding) ReverseTriangleWinding(indices);
                         mesh.SetTriangles(indices,0,true);
                         if(src.HasUV)mesh.SetUVs(0,src.UV);
                         if(src.HasNormal)mesh.SetNormals(src.Normals);
@@ -197,6 +211,8 @@ namespace MusafirEx.Brres
                         }
                     }
                 }
+                if(automaticallyCorrectedMeshes>0)
+                    warnings.Add("BRRES: automatically corrected inverted triangle faces on " + automaticallyCorrectedMeshes + " mesh(es) by comparing triangle winding against authored vertex normals.");
                 foreach(var warning in warnings)context.LogImportWarning(warning);
                 context.LogImportWarning("BRRES importer is beta: palette TEX0/PLT0, full GX TEV materials and uncommon vertex formats are not supported. Visually validate mesh/rig before production use.");
             }
@@ -207,6 +223,41 @@ namespace MusafirEx.Brres
                 throw;
             }
         }
+        private static void ReverseTriangleWinding(int[] triangles)
+        {
+            for(int i=0;i+2<triangles.Length;i+=3)
+            {
+                int swap=triangles[i+1];
+                triangles[i+1]=triangles[i+2];
+                triangles[i+2]=swap;
+            }
+        }
+
+        // Positive geometric normal should agree with the three authored vertex
+        // normals. Ignore degenerate/ambiguous faces and require strong consensus.
+        // This preserves models with already-correct facing and repairs models
+        // whose hardware winding is backwards relative to their vertex normals.
+        private static bool NeedsFaceWindingCorrection(List<Vector3> positions,
+            List<Vector3> normals,int[] triangles)
+        {
+            if(normals==null || normals.Count!=positions.Count) return false;
+            int aligned=0,opposed=0;
+            for(int i=0;i+2<triangles.Length;i+=3)
+            {
+                int ia=triangles[i],ib=triangles[i+1],ic=triangles[i+2];
+                if(ia<0||ib<0||ic<0||ia>=positions.Count||ib>=positions.Count||ic>=positions.Count)
+                    continue;
+                Vector3 geometric=Vector3.Cross(positions[ib]-positions[ia],positions[ic]-positions[ia]);
+                Vector3 authored=normals[ia]+normals[ib]+normals[ic];
+                float threshold=geometric.magnitude*authored.magnitude*0.15f;
+                if(threshold<=1e-12f) continue;
+                float dot=Vector3.Dot(geometric,authored);
+                if(dot>threshold) aligned++;
+                else if(dot< -threshold) opposed++;
+            }
+            return opposed>=8 && opposed>aligned*4;
+        }
+
         private static string Safe(string name)
         {
             if(string.IsNullOrWhiteSpace(name))return "unnamed";
