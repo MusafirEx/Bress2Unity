@@ -8,10 +8,11 @@ using UnityEditor;
 using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEditor.Animations;
 
 namespace MusafirEx.Brres
 {
-    [ScriptedImporter(1, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(2, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -24,6 +25,16 @@ namespace MusafirEx.Brres
         public bool importTextures = true;
         [Tooltip("Create a skinned renderer when the source has weighted bone/node data; otherwise create a static MeshRenderer.")]
         public bool importSkinning = true;
+        [Tooltip("Import embedded CHR0 animations as Unity AnimationClip sub-assets.")]
+        public bool importAnimations = true;
+        [Tooltip("Animation rig for separate, animation-only BRRES. Assign a model prefab asset for correctly mapped bones.")]
+        public GameObject animationRig;
+        [Tooltip("Frame rate for embedded CHR0 AnimationClips.")]
+        public int animationFps = 60;
+        [Tooltip("Coordinate basis of the skeleton, 0=Flip X, 1=Flip Z, 2=None.")]
+        public int animationAxis = 0;
+        [Tooltip("Respect source CHR0 looping flags.")]
+        public bool animationLoop = true;
 
         public override void OnImportAsset(AssetImportContext context)
         {
@@ -36,8 +47,9 @@ namespace MusafirEx.Brres
                 var parser = new BrresMdl0Reader(source, flipX, flipUV, Mathf.Clamp(unitsToMeters,0.000001f,10000f));
                 var records = parser.FindResources();
                 var modelResources = records.FindAll(r => r.Magic == "MDL0");
-                if(modelResources.Count == 0)
-                    throw new InvalidDataException("No MDL0 resource found inside BRRES archive");
+                var chr0Resources = records.FindAll(r => r.Magic == "CHR0");
+                if(modelResources.Count == 0 && chr0Resources.Count == 0)
+                    throw new InvalidDataException("No MDL0 or CHR0 resource found inside BRRES archive");
 
                 var root = new GameObject(Path.GetFileNameWithoutExtension(context.assetPath));
                 context.AddObjectToAsset("root",root);
@@ -50,12 +62,14 @@ namespace MusafirEx.Brres
                     kv.Value.name=kv.Key;
                     context.AddObjectToAsset("tex_"+(texIndex++)+"_"+Safe(kv.Key),kv.Value);
                 }
+                var modelRoots = new List<GameObject>();
                 int assetSerial=0;
                 foreach(var resource in modelResources)
                 {
                     var parsed=parser.ReadModel(resource,warnings);
                     var modelRoot=new GameObject(string.IsNullOrEmpty(parsed.Name)?"MDL0":parsed.Name);
                     modelRoot.transform.SetParent(root.transform,false);
+                    modelRoots.Add(modelRoot);
                     var boneObjects=new Transform[parsed.Joints.Count];
                     for(int i=0;i<parsed.Joints.Count;i++)
                     {
@@ -144,6 +158,44 @@ namespace MusafirEx.Brres
                         context.AddObjectToAsset("mesh_"+assetSerial+"_"+i+"_"+Safe(mesh.name),mesh);
                     }
                     assetSerial++;
+                }
+                if(importAnimations)
+                {
+                    var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    int clipSerial = 0;
+                    foreach(var resource in chr0Resources)
+                    {
+                        try
+                        {
+                            byte[] raw = parser.ReadChr0WithSharedStrings(resource);
+                            GameObject rig = animationRig;
+                            if(rig == null && modelRoots.Count > 0)
+                            {
+                                int best = 0;
+                                foreach(var candidate in modelRoots)
+                                {
+                                    int matches = CHR0ToUnityAnimConverter.CountEmbeddedBoneMatches(raw,candidate);
+                                    if(matches > best) { best=matches; rig=candidate; }
+                                }
+                            }
+                            string clipName = string.IsNullOrEmpty(resource.Name)?"CHR0_"+clipSerial:resource.Name;
+                            string unique = clipName;
+                            for(int suffix=1;!usedNames.Add(unique);suffix++) unique=clipName+"_"+suffix;
+                            int mapped;
+                            var clip = CHR0ToUnityAnimConverter.CreateEmbeddedAnimation(raw,unique,rig,
+                                Mathf.Clamp(animationFps,1,120),Mathf.Clamp(animationAxis,0,2),animationLoop,out mapped);
+                            context.AddObjectToAsset("chr0_"+clipSerial+"_"+Safe(unique),clip);
+                            if(rig == null)
+                                warnings.Add("CHR0 " + unique + ": animation-only BRRES; generic one-level bone curves imported. " +
+                                    "For a usable rig animation, use Tools > MH > CHR0 from BRRES and choose the matching model in the Hierarchy.");
+                            else warnings.Add("CHR0 " + unique + ": " + mapped + " bone names matched " + rig.name);
+                            clipSerial++;
+                        }
+                        catch(Exception ex)
+                        {
+                            warnings.Add("CHR0 " + resource.Name + " was not imported: " + ex.Message);
+                        }
+                    }
                 }
                 foreach(var warning in warnings)context.LogImportWarning(warning);
                 context.LogImportWarning("BRRES importer is beta: palette TEX0/PLT0, full GX TEV materials and uncommon vertex formats are not supported. Visually validate mesh/rig before production use.");
