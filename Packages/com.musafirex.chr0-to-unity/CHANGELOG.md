@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0-preview.1] - 2026-10-23
+
+- Add a fully functional **Materials** Inspector tab alongside Model, Rig and Animations for imported BRRES/MDL0 assets.
+- Add **Import Materials** toggle and optional **Generated Material Shader** override, preserving the prior default Standard/URP/HDRP shader behavior.
+- Generate a material manifest sub-asset recording original MDL0 material names, TEX0 names, model/material slot indices, stable import keys and generated Unity materials.
+- Expose **External Material** fields for assigning independent Unity `.mat` files to individual MDL0 material slots; use them directly on MeshRenderer and SkinnedMeshRenderer without replacing or editing embedded materials.
+- Add **Extract Materials...** button that clones generated materials to a user-selected folder under `Assets`, assigns them as external overrides, and reimports. Also add **Clear Overrides** to restore generated defaults.
+- Keep stable preexisting material sub-asset identifiers and support repeated material names across different MDL0 models. Register source-asset dependencies for assigned external material/shader files.
+- Bump the BRRES ScriptedImporter revision to **5** to reimport existing assets. CHR0 conversion logic, Rig/Avatar support, face-winding correction and MOT exclusion remain unchanged.
+- **Not yet verified in a live Unity Editor:** package compilation, actual extraction workflow, external override assignment, and visual material results. Full Wii TEV shading remains unsupported.
+
+
 ## [0.6.0-preview.2] - 2026-10-23
 
 - Fix the two Unity 2022.3 compilation errors in `BrresRigBuilder.cs`: `HumanDescription.legTwist` is replaced with `HumanDescription.lowerLegTwist`, and the unavailable `HumanDescription.rootMotionBoneName` assignment is removed.
