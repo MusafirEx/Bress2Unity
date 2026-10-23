@@ -1,144 +1,103 @@
-# CHR0 → Unity Animation Converter
+# CHR0 → Unity + Native BRRES/MDL0 Importer
 
-A **Unity Package Manager (UPM)** package for importing Nintendo Wii **NW4R CHR0** skeletal animations as native Unity `.anim` AnimationClips.
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.2.0-preview.1**
 
-**Unity 2022.3 LTS** · Editor tool · MIT License
+One Unity package with two Editor tools:
 
-> **Project status:** The CHR0 converter has been successfully used for bone position and rotation animation in Unity. The separate MOT/GNTA experiment did not work and is **not part of this package**.
+- **CHR0 → Unity .anim:** Tested CHR0 animation converter (position, rotation, named bone binding). Original converter code remains unchanged.
+- **BRRES/MDL0 → Unity model asset:** New **experimental native importer** for Wii models, skeletons, meshes and supported TEX0 textures. No nintoolbox program and no intermediate GLB are needed for supported models.
 
-## Install in Unity (recommended)
+> **Status:** BRRES/MDL0 importer has been validated with binary structure and reference triangle/texture data, but **has not yet been compiled and visually tested in Unity**. The BRRES importer and skinning are beta. MOT/GNTA conversion is not supported.
 
-1. Make sure **Git** is installed and accessible on your Windows PATH.
-2. In Unity, open **Window → Package Manager**.
-3. Click **+ → Add package from git URL...**.
-4. Paste:
+## Install with Unity Package Manager
+
+1. Install [Git](https://git-scm.com/download/win) and ensure it is available on PATH.
+2. Unity → **Window → Package Manager** → **+ → Add package from git URL**.
+3. Paste this package URL:
 
 ```text
 https://github.com/MusafirEx/CHR0_2_Unity.git?path=/Packages/com.musafirex.chr0-to-unity
 ```
 
-5. Click **Add**. After installation, open **Tools → MH → CHR0 to Unity .anim**.
+4. Click **Add**. Delete older copies of `CHR0ToUnityAnimConverter.cs` in `Assets` if you installed the previous standalone version, to avoid duplicate class definitions.
 
-You can also add this entry to your Unity project's `Packages/manifest.json` dependencies:
-
-```json
-{
-  "dependencies": {
-    "com.musafirex.chr0-to-unity": "https://github.com/MusafirEx/CHR0_2_Unity.git?path=/Packages/com.musafirex.chr0-to-unity"
-  }
-}
-```
-
-This JSON is an **example entry**: merge it into an existing `dependencies` object rather than overwriting your project's manifest.
-
-**Existing users:** Remove your old `Assets/**/CHR0ToUnityAnimConverter.cs` copy before installing the Git package. Otherwise Unity may find duplicate class definitions. Your existing generated `.anim` assets do not need to be removed.
-
-## BRRES → nintoolbox → GLB → Unity
-
-The complete workflow has **two independent input paths**: the character model and the animation files.
+## Native model import (BRRES/MDL0 → Unity)
 
 ```text
-MODEL:
-Nintendo Wii BRRES / MDL0
-       │
-       ▼
-nintoolbox / wmdlt DECODE
-       │
-       ▼
-    model.glb
-       │
-       ▼
-Unity + glTF importer (e.g. glTFast)
-       │
-       ▼
-Rigged model with named bones
-       │
-       │
-ANIMATION:                       │
-CHR0 binary files                │
-       │                         │
-       ▼                         │
-CHR0 → Unity .anim converter     │
-       │                         │
-       ▼                         ▼
-    clip.anim ──────────────► Unity Animator
+model.brres / model.mdl0
+      │  Drag into Unity Assets/
+      ▼
+Built-in Unity ScriptedImporter (managed C#)
+      │
+      ├── Unity Mesh(es) + Renderer(s)
+      ├── Bone hierarchy and experimental skin weights
+      ├── Embedded TEX0 images → Texture2D
+      └── Preview materials
+      │
+      ▼
+Place imported model asset into scene
 ```
 
-### 1. Convert your BRRES/MDL0 model into a GLB
+Select the BRRES/MDL0 asset in the Project window to adjust **Flip X**, **Flip UV**, **unitsToMeters**, **Import Textures** or **Import Skinning** options.
 
-Download/build [nintoolbox (Wiimms SZS Tools Plus)](https://github.com/quatric/nintoolbox) and use its `wmdlt` model tool.
+**Beta limitations:** paletted PLT0 textures, exact GX/TEV shaders, some uncommon vertex modes and some skinning scenarios are not fully supported. See [BRRES importer technical notes](Packages/com.musafirex.chr0-to-unity/BRRES_IMPORTER_BETA.md).
 
-For a BRRES file that nintoolbox can decode directly:
+## Original model workflow (still supported)
+
+If the native importer cannot read your model, you can still use [nintoolbox](https://github.com/quatric/nintoolbox):
+
+```text
+BRRES / MDL0 → nintoolbox / wmdlt DECODE → GLB → glTFast → Unity
+```
+
+Example commands:
 
 ```powershell
 wmdlt DECODE character.brres --dest character.glb
-```
-
-For a model previously extracted as MDL0:
-
-```powershell
 wmdlt DECODE character.mdl0 --dest character.glb
 ```
 
-If BRRES contains several models or direct conversion does not work, extract the BRRES contents and pass the desired MDL0 to `wmdlt`. More information: [nintoolbox command reference](https://github.com/quatric/nintoolbox/blob/master/docs/COMMANDS.md).
+See [nintoolbox commands](https://github.com/quatric/nintoolbox/blob/master/docs/COMMANDS.md). nintoolbox and glTFast are **not required** for the new native importer when it supports your model.
 
-Import the resulting GLB into Unity with a compatible glTF importer (such as **glTFast**) and place an instance in your scene hierarchy. **nintoolbox is an external project and is not bundled with this package.**
+## CHR0 animation import (existing stable tool)
 
-### 2. Convert CHR0 animation files into Unity AnimationClips
+```text
+CHR0 animation files → Tools > MH > CHR0 to Unity .anim → Unity AnimationClips
+```
 
-CHR0 animations must be extracted separately from the relevant animation resources. They can be named `e001_001`, `e001_001.chr0`, etc.; this converter checks their **CHR0 binary signature**, not their extensions.
+1. Select the root of your imported rigged character in the Unity **Hierarchy**.
+2. Open **Tools → MH → CHR0 to Unity .anim**.
+3. Choose a folder with extracted CHR0 files (extensions optional).
+4. Choose FPS and coordinate conversion settings.
+5. Click **Analyze CHR0** and **Generate .anim files**.
+6. Assign the clips to an Animator Controller.
 
-1. Open **Tools → MH → CHR0 to Unity .anim**.
-2. Assign the imported model's root GameObject from the **Hierarchy**.
-3. Browse to the folder containing CHR0 animations.
-4. Select FPS (**30 / 60**), coordinate option (**Flip X / Flip Z / None**), and whether to respect the CHR0 loop flag.
-5. Click **Analyze CHR0** to inspect the available animations and matched bones.
-6. Click **Generate .anim files** (default location: `Assets/CHR0Animations`).
-7. Add the clips to an **Animator Controller**.
+The model-importer and CHR0 converter are separate components in **one package**.
 
-**Important:** The GLB conversion provides the model and skeleton, whereas CHR0 conversion provides animation curves. This package **does not** perform BRRES → GLB conversion, and it does **not** convert CHR0 → animated GLB.
-
-## Features
-
-- Nintendo Wii NW4R **CHR0 v5** parsing, with no specific filename extension required.
-- Keyframe decoding: **I4, I6, I12, L1, L2, L4**.
-- Position, rotation (Unity quaternion curves) and scale animation.
-- Name-based hierarchy binding, playback FPS and coordinate-convention options.
-- Loop flag import and batch conversion of one directory to native `.anim` assets.
-
-## Repository structure
+## Source structure
 
 ```text
 Packages/
-└── com.musafirex.chr0-to-unity/  # Install this folder through Unity UPM
+└── com.musafirex.chr0-to-unity/
     ├── package.json
     ├── README.md
+    ├── BRRES_IMPORTER_BETA.md
     ├── CHANGELOG.md
     ├── LICENSE.md
     └── Editor/
         ├── CHR0ToUnityAnimConverter.cs
-        └── MusafirEx.CHR0ToUnity.Editor.asmdef
-Experimental/
-└── MOT/
-    └── MotGntaUnityConverter.cs  # Archived prototype; do not import into Unity
+        ├── MusafirEx.CHR0ToUnity.Editor.asmdef
+        └── BRRES/
+            ├── BrresNativeImporter.cs
+            └── BrresMdl0Reader.cs
+Experimental/MOT/
+    MotGntaUnityConverter.cs  # Archived only; excluded from UPM
 ```
 
-The UPM Git URL installs only the package folder and excludes `Experimental/MOT/`.
+## Validation
 
-## Compatibility and limitations
+The first BRRES reader was checked with `axe001.brres` against a previously converted `axe001.glb`: **7 meshes, 1,470 triangles** (all seven polygon triangle counts match), **3 TEX0 textures**. This is format-level validation, **not a completed Unity Editor runtime/compilation test**.
 
-- Tested workflow: **Unity 2022.3 LTS** with imported GLB skeletons.
-- Requires an existing model/bone hierarchy in the Unity scene; the converter only creates `.anim` files.
-- Exported animation must be checked for correct bone names, hierarchy, rotations, FPS, and coordinate system.
-- **MOT/GNTA is not supported.** The previous attempt is archived, not included in UPM.
-- No ripped/copyrighted game resources are included.
+## License and acknowledgements
 
-## Credits
-
-- Package maintained by **[Musafir Ex](https://github.com/MusafirEx)**.
-- The CHR0 decoding implementation was informed by open Wii animation-format research and [nintoolbox](https://github.com/quatric/nintoolbox).
-- nintoolbox and glTFast are external, independent tools.
-
-## License
-
-[MIT License](LICENSE). See the [package-specific README](Packages/com.musafirex.chr0-to-unity/README.md) for troubleshooting.
+[MIT License](LICENSE). Package by [Musafir Ex](https://github.com/MusafirEx). nintoolbox is an independent external project; no nintoolbox binary/source or copyrighted game assets are bundled with the importer. Consult original asset owners' rights before redistributing models.
