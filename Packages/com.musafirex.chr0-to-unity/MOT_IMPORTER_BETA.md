@@ -1,6 +1,10 @@
-# Experimental MOT / GNTA support — v0.4.0-preview.1
+# Experimental MOT / GNTA support — v0.4.0-preview.2
 
 **Status: experimental; not part of the previously confirmed BRRES/CHR0 milestone.**
+
+**MOT importer hotfix (0.4.0-preview.2):** Unity 2022.3 previously threw `Failed to add object of type MotArchiveInfo` when importing `.mot`. The manifest ScriptableObject now lives in its own matching `MotArchiveInfo.cs` file. Update the Git package and **Reimport** affected MOT assets. The original BRRES/CHR0 importer is unchanged.
+
+
 
 This release adds an Editor-only native import path for Eighting-style `.mot` containers containing one or more GNTA-like animation clips. It is a separate implementation from the CHR0 reader. No C source, native executable, intermediate GLB or Nintendo/game assets are included.
 
