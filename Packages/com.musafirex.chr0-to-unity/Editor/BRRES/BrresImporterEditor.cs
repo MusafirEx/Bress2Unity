@@ -234,7 +234,13 @@ namespace MusafirEx.Brres
             if(manifest==null || manifest.entries==null || manifest.entries.Count==0)return;
             string absolute=EditorUtility.OpenFolderPanel("Extract BRRES Materials",Application.dataPath,"");
             if(string.IsNullOrEmpty(absolute))return;
-            string folder=FileUtil.GetProjectRelativePath(absolute).Replace('\\','/');
+            string folder=FileUtil.GetProjectRelativePath(absolute);
+            if(string.IsNullOrEmpty(folder))
+            {
+                EditorUtility.DisplayDialog("Invalid destination","Extracted materials must be saved inside this project's Assets folder.","OK");
+                return;
+            }
+            folder=folder.Replace('\\','/');
             if(folder!="Assets" && !folder.StartsWith("Assets/",StringComparison.Ordinal))
             {
                 EditorUtility.DisplayDialog("Folder must be inside Assets","Select a folder inside this Unity project's Assets directory.","OK");
