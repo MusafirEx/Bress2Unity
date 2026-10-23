@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0-preview.1] - 2026-10-23
+
+- Add an FBX-style **Model / Rig / Animations** Inspector to the native BRRES/MDL0 ScriptedImporter, with Apply / Revert controls.
+- Implement **None, Legacy, Generic (default), Humanoid** Rig modes for imported models.
+- Build and embed Unity Generic Avatar sub-assets from the imported skeleton; optionally create Humanoid Avatar sub-assets using editable name mappings for NW4R human bones.
+- Add **Avatar Definition: Create From This Model / Copy From Other Avatar**, including compatible-Avatar type validation and external source dependency tracking.
+- Attach Mecanim Animator to the MDL0 model child, keeping existing CHR0 Transform curve paths compatible. For Legacy, attach Animation and create legacy CHR0 clips.
+- Validate generated Avatars; invalid Humanoid rigs give warnings and leave models/CHR0 assets intact.
+- Leave the BRRES triangle-winding correction in place and preserve CHR0 binary decoding code.
+- Bump the BRRES importer revision to 4. Package identifier remains unchanged. MOT/GNTA remains excluded.
+- **Unverified:** Unity compile and run, actual Humanoid Avatar valid-T-pose acceptance, and humanoid retargeting of CHR0 clips. The CHR0 transform curves are not automatically converted to humanoid muscle animation.
+
+
 ## [0.5.0-preview.1] - 2026-10-23
 
 - **Remove the experimental MOT/GNTA importer completely from the installable Unity package** (all `Editor/MOT` scripts, corresponding `.meta` files, and MOT beta notes). The failed attempt is preserved in [the MOT archive branch](https://github.com/MusafirEx/Bress2Unity/tree/archive/mot-experimental-v0.4.0-preview.2); the pre-existing `Experimental/MOT` prototype remains outside the UPM package.
