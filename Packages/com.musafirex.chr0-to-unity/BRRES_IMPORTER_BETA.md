@@ -14,13 +14,34 @@ This implementation adds Unity's `ScriptedImporter` for `.brres` and `.mdl0` in 
 
 ## Known limits
 
-- **Unity Editor compilation and scene rendering are not yet tested.** The GitHub files were statically reviewed; the asset import pipeline requires testing in an actual Unity 2022.3 LTS Editor.
+- **The initial BRRES/CHR0 package was user-tested successfully in Unity 2022.3** (v0.3.0 preview baseline), but the new per-mesh face winding correction in v0.5.0-preview.1 still requires a fresh Unity Scene test with `0000.brres`.
 - Native skinning and bind poses are preliminary, especially multi-node blends. Test CHR0 deformation before depending on this importer for animated meshes.
 - Palette-indexed TEX0 formats C4/C8/C14X2 with PLT0 need decoding support.
 - Complex Wii TEV multi-pass rendering, shader registers and advanced texture transform stages are not reproduced. Standard/URP/HDRP preview materials are only approximations.
 - GX `DIRECT` vertex attributes and some obscure display-list configurations are deliberately not decoded. An unsupported mesh should produce a warning.
 - Standalone MDL0 may have no embedded textures; prefer the original BRRES.
 - Imported models can contain extra bone GameObjects used as attachment points (particle/effect anchors). They are intentionally retained even if not weighted to geometry.
+
+## Automatic winding correction — v0.5.0-preview.1
+
+The Wii GX primitive decoder reverses the hardware primitive winding for modern renderers, and the Unity importer also reverses winding when the X basis is reflected. However, **some Wii BRRES assets were authored with geometry facing the opposite direction to their vertex normals**. In these cases, the imported faces appear inside-out or invisible due to back-face culling.
+
+The importer now checks per-triangle geometric normals against the authored per-vertex normals and calculates a **per-mesh majority direction**. It reverses faces when at least eight non-degenerate triangles have strong negative normal agreement and that count is more than four times the positive count.
+
+Reference samples:
+
+| Reference model | Meshes | Triangles | Meshes flagged for correction |
+|---|---:|---:|---:|
+| `0000.glb` | 26 | 9,506 | **26** |
+| `axe001.glb` | 7 | 1,470 | **0** |
+
+The `Reverse Face Winding` Inspector checkbox is an explicit override **after** automatic correction. Its default is off. It does not modify CHR0 clips, bone names or skin weights.
+
+After installing this update, right-click `0000.brres` in the Unity Project window and select **Reimport**; the importer was bumped to version 3. Check outside vs. inside surfaces in the Scene view, not only shaded preview normals.
+
+The GLB comparison validates the detection heuristic on these two reference samples. The new code has not yet been visually confirmed against the selected BRRES in Unity.
+
+**MOT/GNTA import was removed from the UPM package in this release**, with a source snapshot preserved in the Git history on the [MOT archive branch](https://github.com/MusafirEx/Bress2Unity/tree/archive/mot-experimental-v0.4.0-preview.2).
 
 ## Validation record
 
