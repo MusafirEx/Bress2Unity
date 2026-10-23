@@ -1,29 +1,23 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.4.0-preview.2 — Unity 2022.3 LTS, Editor-only**
+**Version 0.5.0-preview.1 — Unity 2022.3 LTS, Editor-only**
 
-This Unity package combines three tools:
+This Unity package combines two Editor tools:
 
-1. **CHR0 → Unity `.anim`**: the existing tested NW4R CHR0 animation converter, unchanged.
-2. **MOT/GNTA → Unity AnimationClips (experimental)**: direct .mot multi-slot import against a compatible rig; rotation decoding is not fully validated.\n3. **BRRES / MDL0 → Unity model asset (beta)**: a new, **managed C# ScriptedImporter** that reads Wii models directly in the Editor without running nintoolbox or writing a GLB file.
+1. **BRRES / MDL0 → Unity model assets:** a native C# ScriptedImporter that reads Wii model files directly without nintoolbox or GLB intermediates.
+2. **CHR0 → Unity `.anim` or AnimationClip sub-assets:** the already-tested CHR0 animation converter, including CHR0 resources embedded in BRRES.
 
 **Unity-tested milestone (23 October 2026):** The user confirmed this package's BRRES model and CHR0 animation workflows work in Unity. The [tested source snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) is preserved in a separate Git branch. The importer remains **preview/beta** for unsupported model variants, advanced Wii materials and skinning edge cases.
 
-## Experimental MOT / GNTA animation import (v0.4.0-preview.2)
+## Automatic MDL0 face winding correction (v0.5.0-preview.1)
 
-**MOT importer hotfix (0.4.0-preview.2):** Unity 2022.3 previously threw `Failed to add object of type MotArchiveInfo` when importing `.mot`. The manifest ScriptableObject now lives in its own matching `MotArchiveInfo.cs` file. Update the Git package and **Reimport** affected MOT assets. The original BRRES/CHR0 importer is unchanged.
+Bress2Unity now **detects reversed triangle faces separately for each mesh**, by comparing its geometric face direction against its authored vertex normals. This fixes imported `0000.brres` faces without reversing correctly oriented models such as `axe001.brres`.
 
+After updating the package, right-click `0000.brres` and choose **Reimport**. The importer version was raised to 3 to trigger the new geometry processing. The `Reverse Face Winding` checkbox in the BRRES import Inspector is an **optional manual override**, normally left unchecked. If corrected faces are still visually wrong for a particular model, toggle it and reimport; verify from both inside and outside with a standard back-face-culling material.
 
+Independent reference check: `0000.glb` has 26 meshes / 9,506 triangles, with all 26 meshes showing overwhelmingly opposing geometric and authored normals; `axe001.glb` has seven meshes / 1,470 triangles, all consistently aligned. The automatic-correction rule distinguishes both references without a file-specific exception. This is format-level validation; the modified Unity importer still requires an Editor/Scene visual test.
 
-**New: native `.mot` import, no extraction step needed.** MOT/GNTA is a different animation format from BRRES/CHR0 and is kept in its own isolated importer.
-
-**For the selected model:** Put `0000.mot` alongside `0000.brres` in Unity's `Assets` directory. Unity should automatically recognize the .mot file, locate the same-stem BRRES skeleton and add `MOT_slot_XXXX` AnimationClip sub-assets under `0000.mot`. If the rig is not detected, select `0000.mot`, assign **Animation Rig** to the imported `0000.brres` prefab, and Reimport.
-
-To use a selected **scene GameObject rig** or a custom mapping CSV, open **Tools → MH → MOT to Unity .anim (Experimental)**, assign the MOT and model root, run **Analyze MOT**, then **Generate .anim files** into `Assets/MOTAnimations`.
-
-**Rotation warning:** The MOT `0x0202` 2-float rotation encoding remains unresolved. By default these rotation channels are skipped rather than inventing poses; experimental X/Y/Z approximations and 4D axis-angle interpretation may be enabled explicitly. The imported clips are **not yet guaranteed to reproduce the original motion**. Initial testing covers header/track parsing from 64 GNTA clips, not Unity playback.
-
-See the [MOT implementation and test notes](MOT_IMPORTER_BETA.md) and the preserved [v0.3 Unity-tested baseline](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested).
+**MOT/GNTA has been removed from the installed Unity package.** The earlier experimental implementation is kept only in Git history and the [archived MOT branch](https://github.com/MusafirEx/Bress2Unity/tree/archive/mot-experimental-v0.4.0-preview.2).
 
 ## Embedded CHR0 animations inside BRRES (v0.3.0-preview.1)
 
@@ -51,7 +45,7 @@ The converter reuses the existing CHR0 v5 decoder, including I4/I6/I12/L1/L2/L4 
 
 NW4R BRRES may store CHR0 bone names in its **shared string pool**, beyond the CHR0 resource's declared byte length. The importer keeps the source archive's trailing bytes available so those strings can resolve. Data parsing is bounds-checked.
 
-Only **CHR0 v5** is supported by the CHR0 decoder. Other **BRRES animation formats** such as SRT0, PAT0 and VIS0 are not converted by this feature. Separate MOT/GNTA support is experimental, as explained above. Animation-only files with no model cannot guarantee full bone paths without a rig.
+Only **CHR0 v5** is supported by the CHR0 decoder. Other **BRRES animation formats** such as SRT0, PAT0 and VIS0 are not converted by this feature. MOT/GNTA is not supported by this UPM package. Animation-only files with no model cannot guarantee full bone paths without a rig.
 
 
 ## Install using Unity Package Manager
@@ -134,4 +128,4 @@ The same BRRES contains one MDL0 and three TEX0 textures with the expected 256×
 - [GitHub repository](https://github.com/MusafirEx/Bress2Unity)
 - [Importer beta technical notes](BRRES_IMPORTER_BETA.md)
 - License: [MIT](LICENSE.md). The C# importer is an independently written managed implementation informed by public format research and verified sample files; no nintoolbox binary or GPL C source is bundled.
-- An older MOT prototype remains archived outside the UPM package; the new, isolated MOT importer is experimental and not yet Unity-tested.
+- MOT/GNTA is excluded from this UPM package; an obsolete prototype is kept in the separate `Experimental/MOT` repository directory and the archived branch.
