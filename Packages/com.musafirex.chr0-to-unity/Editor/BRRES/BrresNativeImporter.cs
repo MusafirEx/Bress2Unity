@@ -12,7 +12,10 @@ using UnityEditor.Animations;
 
 namespace MusafirEx.Brres
 {
-    [ScriptedImporter(3, new[] { "brres", "mdl0" })]
+    public enum BrresRigType { None=0, Legacy=1, Generic=2, Humanoid=3 }
+    public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
+
+    [ScriptedImporter(4, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -27,6 +30,38 @@ namespace MusafirEx.Brres
         public bool importTextures = true;
         [Tooltip("Create a skinned renderer when the source has weighted bone/node data; otherwise create a static MeshRenderer.")]
         public bool importSkinning = true;
+
+        [Header("Rig")]
+        [Tooltip("None: no Animator. Legacy: Animation component. Generic: Unity Generic Avatar. Humanoid: validated Humanoid Avatar if bone mapping/rest pose permit.")]
+        public BrresRigType rigType = BrresRigType.Generic;
+        [Tooltip("Create an Avatar from each imported model, or reuse an existing external Avatar.")]
+        public BrresAvatarDefinition avatarDefinition = BrresAvatarDefinition.CreateFromThisModel;
+        [Tooltip("Avatar asset to reuse when Avatar Definition = Copy From Other Avatar.")]
+        public Avatar sourceAvatar;
+        [Tooltip("Generic root-motion transform name. Y is common for NW4R skeletons; leave blank to disable root motion.")]
+        public string genericRootBone = "Y";
+
+        [Header("Humanoid Mapping (when Animation Type = Humanoid)")]
+        [Tooltip("Source BRRES skeleton bone names. Humanoid generation requires an appropriate rest pose, not names alone.")]
+        public string humanHips="hip";
+        public string humanSpine="waist";
+        public string humanChest="breast";
+        public string humanNeck="neck";
+        public string humanHead="head";
+        public string humanLeftShoulder="L_collar";
+        public string humanLeftUpperArm="L_harm";
+        public string humanLeftLowerArm="L_larm";
+        public string humanLeftHand="L_hand";
+        public string humanRightShoulder="R_collar";
+        public string humanRightUpperArm="R_harm";
+        public string humanRightLowerArm="R_larm";
+        public string humanRightHand="R_hand";
+        public string humanLeftUpperLeg="L_hleg";
+        public string humanLeftLowerLeg="L_lleg";
+        public string humanLeftFoot="L_foot";
+        public string humanRightUpperLeg="R_hleg";
+        public string humanRightLowerLeg="R_lleg";
+        public string humanRightFoot="R_foot";
         [Tooltip("Import embedded CHR0 animations as Unity AnimationClip sub-assets.")]
         public bool importAnimations = true;
         [Tooltip("Animation rig for separate, animation-only BRRES. Assign a model prefab asset for correctly mapped bones.")]
@@ -173,6 +208,37 @@ namespace MusafirEx.Brres
                     }
                     assetSerial++;
                 }
+                // Build one Avatar per imported MDL0 model. Keep animation bindings
+                // relative to modelRoot, matching the existing CHR0 importer.
+                if(modelRoots.Count==0 && rigType!=BrresRigType.None)
+                    warnings.Add("Rig: This BRRES contains no MDL0 skeleton. Rig configuration is ignored for animation-only BRRES.");
+                for(int ri=0;ri<modelRoots.Count;ri++)
+                {
+                    GameObject rigRoot=modelRoots[ri];
+                    if(rigType==BrresRigType.None)continue;
+                    if(rigType==BrresRigType.Legacy)
+                    {
+                        var anim=rigRoot.AddComponent<Animation>();
+                        anim.playAutomatically=false;
+                        continue;
+                    }
+                    if(avatarDefinition==BrresAvatarDefinition.CopyFromOtherAvatar && sourceAvatar!=null)
+                    {
+                        string sourcePath=AssetDatabase.GetAssetPath(sourceAvatar);
+                        if(!string.IsNullOrEmpty(sourcePath) && sourcePath!=context.assetPath)
+                            context.DependsOnSourceAsset(sourcePath);
+                    }
+                    Avatar avatar=BrresRigBuilder.Build(rigRoot,this,warnings);
+                    if(avatar==null)continue;
+                    if(avatarDefinition==BrresAvatarDefinition.CreateFromThisModel)
+                    {
+                        avatar.name=rigRoot.name+"_Avatar_"+ri;
+                        context.AddObjectToAsset("avatar_"+ri,avatar);
+                    }
+                    Animator animator=rigRoot.AddComponent<Animator>();
+                    animator.avatar=avatar;
+                    animator.applyRootMotion=false; // Preserve previous CHR0 transform behavior.
+                }
                 if(importAnimations)
                 {
                     var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -198,6 +264,21 @@ namespace MusafirEx.Brres
                             int mapped;
                             var clip = CHR0ToUnityAnimConverter.CreateEmbeddedAnimation(raw,unique,rig,
                                 Mathf.Clamp(animationFps,1,120),Mathf.Clamp(animationAxis,0,2),animationLoop,out mapped);
+                            // Legacy Animation requires legacy clips; Mecanim Generic and
+                            // Humanoid use non-legacy clips as before.
+                            if(rigType==BrresRigType.Legacy)
+                            {
+                                clip.legacy=true;
+                                if(rig!=null && modelRoots.Contains(rig))
+                                {
+                                    Animation animation=rig.GetComponent<Animation>();
+                                    if(animation!=null)
+                                    {
+                                        animation.AddClip(clip,unique);
+                                        if(animation.clip==null)animation.clip=clip;
+                                    }
+                                }
+                            }
                             context.AddObjectToAsset("chr0_"+clipSerial+"_"+Safe(unique),clip);
                             if(rig == null)
                                 warnings.Add("CHR0 " + unique + ": animation-only BRRES; generic one-level bone curves imported. " +
