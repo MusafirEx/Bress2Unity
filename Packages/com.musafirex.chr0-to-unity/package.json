@@ -1,20 +1,22 @@
 {
   "name": "com.musafirex.chr0-to-unity",
-  "version": "0.1.0",
-  "displayName": "CHR0 to Unity Animation Converter",
-  "description": "Unity Editor importer for Nintendo Wii NW4R CHR0 skeletal animations, generating native .anim clips from extracted CHR0 files with bone name matching.",
+  "version": "0.2.0-preview.1",
+  "displayName": "CHR0 & BRRES Wii Importer",
+  "description": "Unity Editor package: convert NW4R CHR0 to native .anim and preview/import Nintendo Wii BRRES/MDL0 meshes, skeletons and supported TEX0 images directly (beta).",
   "unity": "2022.3",
   "documentationUrl": "https://github.com/MusafirEx/CHR0_2_Unity#readme",
   "changelogUrl": "https://github.com/MusafirEx/CHR0_2_Unity/blob/main/Packages/com.musafirex.chr0-to-unity/CHANGELOG.md",
   "licensesUrl": "https://github.com/MusafirEx/CHR0_2_Unity/blob/main/LICENSE",
   "keywords": [
-    "Nintendo",
-    "Wii",
     "CHR0",
     "BRRES",
-    "animation",
+    "MDL0",
+    "TEX0",
+    "Nintendo",
+    "Wii",
     "Unity",
-    "AnimationClip"
+    "AnimationClip",
+    "ScriptedImporter"
   ],
   "author": {
     "name": "Musafir Ex",
