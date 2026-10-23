@@ -1,15 +1,27 @@
 # Bress2Unity — Native BRRES / CHR0 Unity Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.3.0-preview.1**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.4.0-preview.1**
 
-One Unity package with two Editor tools:
+One Unity package with three Editor tools:
 
 - **CHR0 → Unity .anim:** Tested CHR0 animation converter (position, rotation, named bone binding). Original converter code remains unchanged.
-- **BRRES/MDL0 → Unity model asset:** New **experimental native importer** for Wii models, skeletons, meshes and supported TEX0 textures. No nintoolbox program and no intermediate GLB are needed for supported models.
+- **MOT/GNTA → Unity .anim (experimental):** Import separate multi-clip .mot containers against a compatible BRRES rig. 2D rotations are unverified and skipped by default.\n- **BRRES/MDL0 → Unity model asset:** New **experimental native importer** for Wii models, skeletons, meshes and supported TEX0 textures. No nintoolbox program and no intermediate GLB are needed for supported models.
 
-> **Unity-tested milestone (23 October 2026):** The user has confirmed that the native BRRES importer and embedded/separate CHR0 workflows work in their Unity project. [Preserved working-code snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested). The importer remains a preview: uncommon Wii formats, precise TEV shading, and advanced skinning are not comprehensively validated. MOT/GNTA is not supported.
+> **Unity-tested milestone (23 October 2026):** The user has confirmed that the native BRRES importer and embedded/separate CHR0 workflows work in their Unity project. [Preserved working-code snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested). The importer remains a preview: uncommon Wii formats, precise TEV shading, and advanced skinning are not comprehensively validated. New MOT/GNTA import is experimental and not included in the tested v0.3 milestone.
 
 **Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
+
+## Experimental MOT / GNTA animation import (v0.4.0-preview.1)
+
+**New: native `.mot` import, no extraction step needed.** MOT/GNTA is a different animation format from BRRES/CHR0 and is kept in its own isolated importer.
+
+**For the selected model:** Put `0000.mot` alongside `0000.brres` in Unity's `Assets` directory. Unity should automatically recognize the .mot file, locate the same-stem BRRES skeleton and add `MOT_slot_XXXX` AnimationClip sub-assets under `0000.mot`. If the rig is not detected, select `0000.mot`, assign **Animation Rig** to the imported `0000.brres` prefab, and Reimport.
+
+To use a selected **scene GameObject rig** or a custom mapping CSV, open **Tools → MH → MOT to Unity .anim (Experimental)**, assign the MOT and model root, run **Analyze MOT**, then **Generate .anim files** into `Assets/MOTAnimations`.
+
+**Rotation warning:** The MOT `0x0202` 2-float rotation encoding remains unresolved. By default these rotation channels are skipped rather than inventing poses; experimental X/Y/Z approximations and 4D axis-angle interpretation may be enabled explicitly. The imported clips are **not yet guaranteed to reproduce the original motion**. Initial testing covers header/track parsing from 64 GNTA clips, not Unity playback.
+
+See the [MOT implementation and test notes](Packages/com.musafirex.chr0-to-unity/MOT_IMPORTER_BETA.md) and the preserved [v0.3 Unity-tested baseline](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested).
 
 ## Embedded CHR0 animations inside BRRES (v0.3.0-preview.1)
 
@@ -37,7 +49,7 @@ The converter reuses the existing CHR0 v5 decoder, including I4/I6/I12/L1/L2/L4 
 
 NW4R BRRES may store CHR0 bone names in its **shared string pool**, beyond the CHR0 resource's declared byte length. The importer keeps the source archive's trailing bytes available so those strings can resolve. Data parsing is bounds-checked.
 
-Only **CHR0 v5** is supported by the shared decoder. Other animation formats, including **MOT/GNTA, SRT0, PAT0 and VIS0**, are **not** converted by this feature. Animation-only files with no model cannot guarantee full bone paths without a rig.
+Only **CHR0 v5** is supported by the CHR0 decoder. Other **BRRES animation formats** such as SRT0, PAT0 and VIS0 are not converted by this feature. Separate MOT/GNTA support is experimental, as explained above. Animation-only files with no model cannot guarantee full bone paths without a rig.
 
 
 ## Install with Unity Package Manager
