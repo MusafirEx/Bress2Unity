@@ -139,7 +139,7 @@ namespace MusafirEx.Brres
                 if(child<0) continue;
                 string name=EntryName(at,i);
                 string sig=Magic(child);
-                if(sig=="MDL0" || sig=="TEX0" || sig=="PLT0")
+                if(sig=="MDL0" || sig=="TEX0" || sig=="PLT0" || sig=="CHR0")
                 {
                     int length=I32(child+4);
                     if(length<16 || !Bounds(child,length)) continue;
@@ -152,7 +152,7 @@ namespace MusafirEx.Brres
         internal List<Resource> FindResources()
         {
             resources.Clear();
-            if(Magic(0)=="MDL0" || Magic(0)=="TEX0")
+            if(Magic(0)=="MDL0" || Magic(0)=="TEX0" || Magic(0)=="CHR0")
             {
                 string sig=Magic(0);
                 resources[sig+":root:0"]=new Resource{Offset=0,Length=data.Length,Name="model",Magic=sig};
@@ -168,6 +168,21 @@ namespace MusafirEx.Brres
             result.Sort((a,b)=>a.Offset.CompareTo(b.Offset));
             return result;
         }
+        // Include data from CHR0 offset up to end of BRRES: NW4R names can reference
+        // the archive's shared string pool located after the resource's declared size.
+        internal byte[] ReadChr0WithSharedStrings(Resource resource)
+        {
+            if (resource == null || resource.Magic != "CHR0")
+                throw new ArgumentException("Resource must be CHR0", nameof(resource));
+            Require(resource.Offset, resource.Length);
+            int size = data.Length - resource.Offset;
+            if (size > 128 * 1024 * 1024)
+                throw new InvalidDataException("CHR0 resource tail exceeds safety limit");
+            var bytes = new byte[size];
+            Buffer.BlockCopy(data, resource.Offset, bytes, 0, size);
+            return bytes;
+        }
+
         internal Dictionary<string,Texture2D> LoadTextures(List<Resource> found,List<string> warnings)
         {
             var output=new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
