@@ -7,7 +7,9 @@ One Unity package with two Editor tools:
 - **CHR0 → Unity .anim:** Tested CHR0 animation converter (position, rotation, named bone binding). Original converter code remains unchanged.
 - **BRRES/MDL0 → Unity model asset:** New **experimental native importer** for Wii models, skeletons, meshes and supported TEX0 textures. No nintoolbox program and no intermediate GLB are needed for supported models.
 
-> **Status:** BRRES/MDL0 importer has been validated with binary structure and reference triangle/texture data, but **has not yet been compiled and visually tested in Unity**. The BRRES importer and skinning are beta. MOT/GNTA conversion is not supported.
+> **Unity-tested milestone (23 October 2026):** The user has confirmed that the native BRRES importer and embedded/separate CHR0 workflows work in their Unity project. [Preserved working-code snapshot](https://github.com/MusafirEx/CHR0_2_Unity/tree/milestone/v0.3.0-preview.1-unity-tested). The importer remains a preview: uncommon Wii formats, precise TEV shading, and advanced skinning are not comprehensively validated. MOT/GNTA is not supported.
+
+**Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/CHR0_2_Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
 
 ## Embedded CHR0 animations inside BRRES (v0.3.0-preview.1)
 
