@@ -12,6 +12,18 @@ This implementation adds Unity's `ScriptedImporter` for `.brres` and `.mdl0` in 
 - Embedded TEX0 to Unity Texture2D for I4, I8, IA4, IA8, RGB565, RGB5A3, RGBA8, CMPR formats.
 - Direct asset import (Unity Mesh, Texture2D, Material, GameObject) without spawning nintoolbox, running native executables, or creating intermediate GLB files.
 
+## Rig / Avatar generation — v0.6.0-preview.1
+
+The custom BRRES ScriptedImporter now shows **Model / Rig / Animations** tabs (an FBX-like Inspector). This does **not** replace Unity's built-in FBX ModelImporter. The Rig tab selects None, Legacy, Generic (default), or Humanoid. Generic uses `AvatarBuilder.BuildGenericAvatar`, and Humanoid uses `AvatarBuilder.BuildHumanAvatar` with editable bone name mappings and Unity's `Avatar.isValid` check. Each generated Avatar is embedded as an importer sub-asset and assigned to an Animator on the actual MDL0 child, preserving existing CHR0 path bindings.
+
+For selected `0000.brres`: Generic root motion is initially `Y`. Humanoid mapping defaults to `hip` / `waist` / `breast` / `neck` / `head` plus named L/R arm and leg bone chains. **Name compatibility alone is not enough for Humanoid Avatar validity**: a correct rest pose and human body proportions are required, and the custom importer does not yet implement pose-reorientation and advanced muscle retargeting. An invalid Humanoid Avatar logs warnings without preventing import of geometry.
+
+A `Copy From Other Avatar` setting is provided for both Generic and Humanoid and references a pre-existing compatible Avatar asset without duplicating it.
+
+Legacy uses an `Animation` component and changes the generated embedded CHR0 clips to Legacy; no Avatar is produced. None imports the model without any rigging component, while preserving the skeleton hierarchy.
+
+**Testing status:** static source audit and Unity API reference verification only for v0.6.0. Real Unity compile, Avatar preview and Humanoid runtime testing remain pending.
+
 ## Known limits
 
 - **The initial BRRES/CHR0 package was user-tested successfully in Unity 2022.3** (v0.3.0 preview baseline), but the new per-mesh face winding correction in v0.5.0-preview.1 still requires a fresh Unity Scene test with `0000.brres`.
