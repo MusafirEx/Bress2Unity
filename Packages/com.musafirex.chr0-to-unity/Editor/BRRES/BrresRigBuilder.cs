@@ -134,12 +134,13 @@ namespace MusafirEx.Brres
             human.upperArmTwist=0.5f;
             human.lowerArmTwist=0.5f;
             human.upperLegTwist=0.5f;
-            human.legTwist=0.5f;
+            human.lowerLegTwist=0.5f;
             human.armStretch=0.05f;
             human.legStretch=0.05f;
             human.feetSpacing=0f;
             human.hasTranslationDoF=false;
-            human.rootMotionBoneName=s.humanHips;
+            // HumanDescription.rootMotionBoneName is not exposed by Unity 2022.3.
+            // Root motion is disabled by Animator.applyRootMotion in this importer.
             return true;
         }
 
