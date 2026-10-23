@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0-preview.1] - 2026-10-23
+
+- **Remove the experimental MOT/GNTA importer completely from the installable Unity package** (all `Editor/MOT` scripts, corresponding `.meta` files, and MOT beta notes). The failed attempt is preserved in [the MOT archive branch](https://github.com/MusafirEx/Bress2Unity/tree/archive/mot-experimental-v0.4.0-preview.2); the pre-existing `Experimental/MOT` prototype remains outside the UPM package.
+- Fix inside-out faces on some BRRES models (including the `0000.brres` reference) by automatically checking triangle winding against authored vertex normals **per mesh**. Previously-correct `axe001.brres` meshes remain unchanged.
+- Add an optional **Reverse Face Winding** importer Inspector override for atypical models where manual correction is needed.
+- Bump the BRRES ScriptedImporter from version 2 to 3 to trigger reimport of assets with updated geometry logic.
+- Independent reference geometry tests: **26/26 `0000.glb` meshes identified for correction**, **0/7 `axe001.glb` meshes changed**; 9,506 and 1,470 reference triangles respectively.
+- This is reference-format verification only; the repaired importer still needs in-Editor confirmation on `0000.brres`.
+- Preserve the previously tested BRRES/CHR0 animation decoding and conversion logic; package identifier stays `com.musafirex.chr0-to-unity` for installation compatibility.
+
+
 ## [0.4.0-preview.2] - 2026-10-23
 
 - Fix MOT import failure in Unity 2022.3: `InvalidOperationException: Failed to add object of type MotArchiveInfo` at `MotNativeImporter.cs:62`.
