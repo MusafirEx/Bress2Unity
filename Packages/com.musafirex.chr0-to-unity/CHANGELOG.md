@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0-preview.1] - 2026-10-23
+
+- Add experimental native `.mot` ScriptedImporter for Eighting MOT archives containing GNTA animation slots.
+- Produce `MOT_slot_XXXX` AnimationClip sub-assets when a compatible skeleton asset is available; otherwise import an archive manifest for manual rig assignment.
+- Automatically look for a same-stem BRRES/MDL0 model, e.g. `0000.mot` and `0000.brres`, or allow an explicit Animation Rig.
+- Add **Tools > MH > MOT to Unity .anim (Experimental)** for using a scene-rig reference, optional mapping CSV, and exporting standalone `.anim` files.
+- Include conservative rotation defaults: unverified 0x0202 rotations skipped; optional experimental X/Y/Z rotation modes.
+- Validate MOT headers and track structure against sample files containing 55, 7 and 2 clips.
+- Preserve all existing BRRES/CHR0 importer source and the first Unity-tested v0.3 milestone branch unchanged.
+- New MOT importer has not yet passed Unity compilation/visual playback and remains experimental.
+
+
 ## [0.3.0-preview.1] - 2026-10-23
 
 ### Unity-tested milestone — confirmed 2026-10-23
