@@ -251,11 +251,16 @@ internal static class MotGntaUnityConverter
         List<MotionTrack> tracks = ReadTracks(unit.Data, out duration, out controlCount);
         string name = unit.Slot >= 0 ? archiveName + "_slot_" + unit.Slot.ToString("X4") : archiveName;
         int mapped = 0, skippedRotation2D = 0, skippedRotation4D = 0, experimental2D = 0, valid4D = 0, exportedTracks = 0;
+        var animatedNames = new HashSet<string>(StringComparer.Ordinal);
+        int all2DRotation = 0, all4DRotation = 0, allTranslations = 0;
         var unknownIds = new SortedSet<int>();
         var missingHierarchyIds = new SortedSet<int>();
         var boundTracks = new List<MotionTrack>();
         foreach (MotionTrack t in tracks)
         {
+            if(t.Kind==8 && t.Components==2) all2DRotation++;
+            else if(t.Kind==8 && t.Components==4) all4DRotation++;
+            else if(t.Kind==1) allTranslations++;
             string boneName;
             if (opts.Mapping == null || !opts.Mapping.TryGetValue(t.BoneId, out boneName) ||
                 (!opts.IncludeAttachments && (t.BoneId >= 150 || boneName.StartsWith("w_", StringComparison.OrdinalIgnoreCase))))
@@ -282,6 +287,7 @@ internal static class MotGntaUnityConverter
                 valid4D++;
             }
             boundTracks.Add(t);
+            animatedNames.Add(boneName);
         }
         string[] unknownStr = new string[unknownIds.Count];
         int ui = 0;
@@ -294,7 +300,12 @@ internal static class MotGntaUnityConverter
                + "; 4D skipped=" + skippedRotation4D
                + "; 2D skipped=" + skippedRotation2D
                + "; 2D EXPERIMENTAL=" + experimental2D
-               + "; length=" + duration.ToString("F3", CultureInfo.InvariantCulture) + "s";
+               + "; length=" + duration.ToString("F3", CultureInfo.InvariantCulture) + "s"
+               + "; SOURCE translations=" + allTranslations
+               + ", rotations2D=" + all2DRotation + ", rotations4D=" + all4DRotation
+               + "; ACTIVE bone names=" + animatedNames.Count
+               + "; active names=[" + string.Join(",", new List<string>(animatedNames).ToArray()) + "]"
+               + (skippedRotation2D>0 ? "; IMPORTANT: skipping 2D rotations leaves most character bones unanimated! Enable EXPERIMENTAL 2D Preview for motion tests." : "");
         if (!export) return null;
         if (targets == null || paths == null || boundTracks.Count == 0)
         {
@@ -385,7 +396,7 @@ internal static class MotGntaUnityConverter
         if (bindings.Count == 0) { UnityEngine.Object.DestroyImmediate(clip); return null; }
         AnimationUtility.SetEditorCurves(clip, bindings.ToArray(), curves.ToArray());
         clip.EnsureQuaternionContinuity();
-        report += "; written tracks=" + exportedTracks;
+        report += "; written tracks=" + exportedTracks + ", curve bindings=" + bindings.Count;
         return clip;
     }
 
@@ -424,6 +435,16 @@ internal static class MotGntaUnityConverter
         }
         // 2-float GNTA rotations have NOT been decoded. Disabled by default.
         if(mode2D==0 || (v.x==100f && v.y==0f))return Quaternion.identity;
+        // Two deliberately different, unverified reconstructions are exposed
+        // in the Workbench to inspect how much motion the sample actually contains.
+        // Mode 4 also responds to x changes when y==0; atan2 does not.
+        if(mode2D==4)
+        {
+            float halfAngle=Mathf.Acos(Mathf.Clamp(v.x,-1f,1f));
+            float degrees=2f*halfAngle*Mathf.Rad2Deg;
+            if(v.y<0f)degrees=-degrees;
+            return Quaternion.AngleAxis(degrees,Vector3.right);
+        }
         float angle=2f*Mathf.Atan2(v.y,v.x)*Mathf.Rad2Deg;
         Vector3 axis2=mode2D==1?Vector3.right:mode2D==2?Vector3.up:Vector3.forward;
         return Quaternion.AngleAxis(angle,axis2);
