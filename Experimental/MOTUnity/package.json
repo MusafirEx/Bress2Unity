@@ -1,8 +1,8 @@
 {
   "name": "com.musafirex.mot-workbench",
-  "version": "0.1.0-preview.1",
+  "version": "0.1.1-preview.1",
   "displayName": "MOT / GNTA Animation Workbench (Experimental)",
-  "description": "Standalone Eighting MOT/GNTA animation inspection, isolated preview, and partial .anim export using linked BRRES model rigs. Does not modify Bress2Unity.",
+  "description": "Separate MOT/GNTA workbench for Unity with multi-bone experimental 2D previews, axis-angle 4D, isolated preview and partial .anim export.",
   "unity": "2022.3",
   "author": {
     "name": "Musafir Ex",
