@@ -21,7 +21,11 @@ namespace MusafirEx.MotWorkbench
         [SerializeField] private bool relativePosition = true;
         [SerializeField] private bool enable4DRotation = true;
         [SerializeField] private bool radians4D;
-        [SerializeField] private int experimental2D;
+        // MOT 0000/0010 are mostly 2-component rotations; leave a visibly
+        // EXPERIMENTAL mode on by default for preview so bones actually move.
+        // Mode 0 is still available for strict position-only diagnostics.
+        [SerializeField] private int experimental2D = 1;
+        [SerializeField] private int twoDSettingSchema;
         [SerializeField] private bool includeAttachments = true;
         [SerializeField] private int samplingFps = 60;
         [SerializeField] private bool loop = true;
@@ -51,6 +55,9 @@ namespace MusafirEx.MotWorkbench
 
         private void OnEnable()
         {
+            // Upgrade existing EditorWindow layout/state from 0.1.0.
+            // Previously 2D=SKIP meant the preview moved essentially only X.
+            if(twoDSettingSchema<1) { experimental2D=1; twoDSettingSchema=1; }
             lastEditorTick = EditorApplication.timeSinceStartup;
             EditorApplication.update += EditorTick;
         }
@@ -134,7 +141,7 @@ namespace MusafirEx.MotWorkbench
             o.PositionPlane2D=Mathf.Clamp(positionPlane,0,2);
             o.PositionScale=Mathf.Clamp(positionScale,0.0001f,100f);
             o.PositionRelative=relativePosition;
-            o.Rotate2D=Mathf.Clamp(experimental2D,0,3);
+            o.Rotate2D=Mathf.Clamp(experimental2D,0,4);
             o.AxisAngle4D=enable4DRotation;
             o.AxisAngleRadians=radians4D;
             o.RotationComposition=Mathf.Clamp(rotationOrder,0,2);
@@ -167,11 +174,30 @@ namespace MusafirEx.MotWorkbench
             Dictionary<string,string> paths;
             MapRig(out targets,out paths);
             // With no rig, analysis still lists recognized binary tracks and slots.
-            return MotGntaUnityConverter.Convert(clips[index],
+            AnimationClip built=MotGntaUnityConverter.Convert(clips[index],
                 Path.GetFileNameWithoutExtension(loadedPath),
                 referenceRig==null?null:targets,
                 referenceRig==null?null:paths,
                 Options(),generate,out report);
+            if(built!=null)
+            {
+                var bindings=AnimationUtility.GetCurveBindings(built);
+                var pathsBound=new HashSet<string>(StringComparer.Ordinal);
+                foreach(var binding in bindings)pathsBound.Add(binding.path);
+                var names=new List<string>();
+                foreach(string boundPath in pathsBound)
+                {
+                    int slash=boundPath.LastIndexOf('/');
+                    names.Add(slash>=0?boundPath.Substring(slash+1):(boundPath.Length==0?"(root)":boundPath));
+                }
+                names.Sort(StringComparer.Ordinal);
+                report+="; UNITY CURVE BINDINGS="+bindings.Length+
+                    "; ANIMATED BONES="+pathsBound.Count+
+                    "; BONE NAMES=["+string.Join(",",names.ToArray())+"]";
+                if(pathsBound.Count<=1)
+                    report+="; ONLY ONE BONE BOUND: verify rig hierarchy/root and 2D rotation mode.";
+            }
+            return built;
         }
         private void Analyze()
         {
@@ -274,6 +300,13 @@ namespace MusafirEx.MotWorkbench
                 previewCopy=Instantiate(referenceRig);
                 previewCopy.name=referenceRig.name+" [MOT Preview]";
                 previewCopy.hideFlags=HideFlags.HideAndDontSave;
+                // BRRES imported rig has its own Mecanim Animator. Disable it in
+                // the disposable preview clone so it cannot overwrite curves
+                // sampled directly via AnimationClip.SampleAnimation().
+                foreach(Animator animator in previewCopy.GetComponentsInChildren<Animator>(true))
+                    animator.enabled=false;
+                foreach(Animation animation in previewCopy.GetComponentsInChildren<Animation>(true))
+                    animation.enabled=false;
                 preview.AddSingleGO(previewCopy);
                 preview.ambientColor=new Color(.4f,.4f,.4f);
                 preview.lights[0].intensity=1.3f;
@@ -372,10 +405,12 @@ namespace MusafirEx.MotWorkbench
                 new[]{"Decoded Absolute","Bind * Decoded","Decoded * Bind"});
             enable4DRotation=EditorGUILayout.Toggle("4D Axis-Angle Rotation",enable4DRotation);
             radians4D=EditorGUILayout.Toggle("4D Angles Are Radians (Test)",radians4D);
-            experimental2D=EditorGUILayout.Popup("2D Rotation",experimental2D,
-                new[]{"SKIP (recommended)","Experiment: axis X","Experiment: axis Y","Experiment: axis Z"});
+            experimental2D=EditorGUILayout.Popup("2D Rotation (experimental)",experimental2D,
+                new[]{"SKIP - only position moves","Preview: atan2 pair, axis X","Preview: atan2 pair, axis Y","Preview: atan2 pair, axis Z","Preview: acos X / signed Y"});
             if(experimental2D!=0)
-                EditorGUILayout.HelpBox("2D GNTA rotation values are NOT established as a sine/cosine pair. This is a visual experiment only.",MessageType.Error);
+                EditorGUILayout.HelpBox("2D GNTA rotations are UNSOLVED. This mode makes multiple bones move as a diagnostic experiment; it does not guarantee original game poses. Compare X/Y/Z/acos modes visually.",MessageType.Warning);
+            else
+                EditorGUILayout.HelpBox("2D Rotation=SKIP: 0000.mot uses this rotation track format for almost every bone. Expect only the translation/root bone to move. Enable an experimental preview mode to test others.",MessageType.Error);
             includeAttachments=EditorGUILayout.Toggle("Include Attachment Bones",includeAttachments);
             samplingFps=EditorGUILayout.IntSlider("Sample FPS",samplingFps,15,120);
             EditorGUILayout.Space();
