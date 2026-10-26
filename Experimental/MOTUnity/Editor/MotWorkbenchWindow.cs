@@ -92,6 +92,7 @@ namespace MusafirEx.MotWorkbench
             if(motSource != Selection.activeObject)
             {
                 motSource=Selection.activeObject;
+                referenceRig=null; // Previous archive may target a different character.
                 loadedPath=null;
                 clips.Clear();
                 DiscardPreview();
@@ -376,7 +377,11 @@ namespace MusafirEx.MotWorkbench
             EditorGUILayout.LabelField("MOT / GNTA Animation Workbench",EditorStyles.boldLabel);
             EditorGUILayout.HelpBox("Independent experimental package; .mot files stay DefaultAssets. 0x0204 rotation XYZ+angle is supported provisionally; 0x0202 remains UNDECODED.",MessageType.Warning);
             var next=EditorGUILayout.ObjectField("MOT Source",motSource,typeof(UnityEngine.Object),false);
-            if(next!=motSource){motSource=next;loadedPath=null;clips.Clear();DiscardPreview();}
+            if(next!=motSource)
+            {
+                motSource=next;referenceRig=null;loadedPath=null;
+                clips.Clear();DiscardPreview();FindSiblingRig();
+            }
             if(GUILayout.Button("Use Selected .mot From Project"))AcceptSelected();
             GameObject rig=(GameObject)EditorGUILayout.ObjectField("Matching Model",referenceRig,typeof(GameObject),true);
             if(rig!=referenceRig){referenceRig=rig;DiscardPreview();}
