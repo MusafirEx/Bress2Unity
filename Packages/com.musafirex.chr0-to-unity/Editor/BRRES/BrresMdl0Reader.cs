@@ -183,7 +183,7 @@ namespace MusafirEx.Brres
             return bytes;
         }
 
-        internal Dictionary<string,Texture2D> LoadTextures(List<Resource> found,List<string> warnings)
+        internal Dictionary<string,Texture2D> LoadTextures(List<Resource> found,List<string> warnings,bool keepMmReadable = false)
         {
             var output=new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
             foreach(var resource in found)
@@ -191,7 +191,7 @@ namespace MusafirEx.Brres
                 if(resource.Magic!="TEX0") continue;
                 try
                 {
-                    Texture2D texture=ReadTexture(resource.Offset);
+                    Texture2D texture=ReadTexture(resource.Offset,keepMmReadable && BrresBumpMapUtility.IsMm(resource.Name));
                     if(texture!=null)
                     {
                         texture.name=resource.Name;
@@ -212,7 +212,7 @@ namespace MusafirEx.Brres
             if((v&0x8000)!=0)return new Color(((v>>10)&31)/31f,((v>>5)&31)/31f,(v&31)/31f,1f);
             return new Color(((v>>8)&15)/15f,((v>>4)&15)/15f,(v&15)/15f,((v>>12)&7)/7f);
         }
-        private Texture2D ReadTexture(int t)
+        private Texture2D ReadTexture(int t,bool keepReadable)
         {
             int w=U16(t+0x1c),h=U16(t+0x1e),format=I32(t+0x20),rel=I32(t+0x10);
             if(w<1||h<1||w>8192||h>8192||((long)w*h)>16777216 || rel<0) throw new InvalidDataException("Bad TEX0 texture dimensions or offset");
@@ -272,7 +272,7 @@ namespace MusafirEx.Brres
                 }
             }
             var result=new Texture2D(w,h,TextureFormat.RGBA32,false,false);
-            result.SetPixels32(pixels);result.Apply(false,true);
+            result.SetPixels32(pixels);result.Apply(false,!keepReadable);
             result.wrapMode=TextureWrapMode.Repeat;
             result.filterMode=FilterMode.Bilinear;
             return result;
