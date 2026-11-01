@@ -16,7 +16,7 @@ namespace MusafirEx.Brres
     public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
     public enum BrresBumpMode { Off=0, OriginalGrayscale=1, HeightToNormal=2 }
 
-    [ScriptedImporter(6, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(7, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -47,7 +47,7 @@ namespace MusafirEx.Brres
         public float bumpStrength = 2f;
         [Tooltip("Invert the source grayscale height values before calculating normals.")]
         public bool bumpInvertHeight = false;
-        [Tooltip("Optional per-material _MM source selection; otherwise only exact texture/material stem matches are suggested.")]
+        [Tooltip("Choose the _MM_XX for a material. Auto uses an exact _BM_XX to _MM_XX name pair (also supports older unnumbered _BM/_MM).")]
         public List<BrresBumpSlotOverride> bumpSlotOverrides = new List<BrresBumpSlotOverride>();
 
         [Header("Rig")]
@@ -192,6 +192,8 @@ namespace MusafirEx.Brres
                         string materialName=parsed.MaterialNames[i]??("Material_"+i);
                         string slotKey="mat_"+assetSerial+"_"+i+"_"+Safe(materialName);
                         string textureName=i<parsed.MaterialTextures.Count?parsed.MaterialTextures[i]:null;
+                        // Only identical base name AND numeric suffix may pair automatically.
+                        // Example: body_BM_01 -> body_MM_01; no cross-pairing _01 with _02.
                         string guessedBump=BrresBumpMapUtility.BestMatch(materialName,textureName,textures);
                         string selectedBump=guessedBump;
                         if(bumpSlotOverrides!=null)
