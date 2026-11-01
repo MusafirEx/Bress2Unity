@@ -310,6 +310,36 @@ namespace MusafirEx.Brres
                 " | Candidate pairs: "+readyCount,EditorStyles.wordWrappedMiniLabel);
             if(readyCount==0 && overrides.arraySize>0)
                 EditorGUILayout.HelpBox("No material currently has both a linked _MM source and an external .mat. Choose _MM Source for the intended slots, press Apply, then use Copy _MM Bump. If no _MM textures are detected, verify Import TEX0 Textures and source BRRES.",MessageType.Warning);
+            // An opt-in batch action for archives with exactly one _MM image.
+            // Never silently apply the sole _MM to all model materials.
+            if(bumpSlots!=null && manifest.availableMmTextures!=null &&
+               manifest.availableMmTextures.Count==1 && manifest.entries.Count>1)
+            {
+                if(GUILayout.Button("Assign sole _MM to unmapped slots (experimental)..."))
+                {
+                    string textureName=manifest.availableMmTextures[0];
+                    if(EditorUtility.DisplayDialog("Use one _MM texture across multiple materials?",
+                        "This assigns "+textureName+" to any material slot that does not already have a _MM source. "+
+                        "The Wii GX/TEV material link is not decoded: some slots may NOT use this bump texture. "+
+                        "Inspect each material after clicking Apply.",
+                        "Assign _MM (manual confirmation)","Cancel"))
+                    {
+                        int changed=0;
+                        foreach(BrresMaterialEntry entry in manifest.entries)
+                        {
+                            if(entry==null || entry.sourceBumpTexture!=null)continue;
+                            SerializedProperty existing=FindBumpSlot(bumpSlots,entry.key);
+                            if(existing!=null &&
+                               !string.IsNullOrEmpty(existing.FindPropertyRelative("sourceTextureName").stringValue))
+                                continue; // Preserve explicit None and per-slot mappings.
+                            SetBumpSlot(bumpSlots,entry.key,textureName);
+                            changed++;
+                        }
+                        if(changed==0)
+                            EditorUtility.DisplayDialog("No unmapped slots","Every material already has a _MM source or an explicit selection.","OK");
+                    }
+                }
+            }
             if(overrides.arraySize>0 && bumpModeProperty!=null &&
                !bumpModeProperty.hasMultipleDifferentValues &&
                (BrresBumpMode)bumpModeProperty.enumValueIndex!=BrresBumpMode.Off)
