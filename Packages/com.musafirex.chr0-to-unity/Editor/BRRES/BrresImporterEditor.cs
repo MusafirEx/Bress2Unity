@@ -180,7 +180,7 @@ namespace MusafirEx.Brres
             }
             Prop("materialShaderOverride","Generated Material Shader");
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("TEX0 _MM / Grayscale Bump Mapping",EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("TEX0 _MM_XX / Grayscale Bump Mapping",EditorStyles.boldLabel);
             Prop("bumpMode","Mode");
             SerializedProperty bumpModeProperty=serializedObject.FindProperty("bumpMode");
             if(bumpModeProperty!=null && !bumpModeProperty.hasMultipleDifferentValues &&
@@ -190,7 +190,7 @@ namespace MusafirEx.Brres
                 if((BrresBumpMode)bumpModeProperty.enumValueIndex==BrresBumpMode.HeightToNormal)
                     Prop("bumpInvertHeight","Invert Height");
             }
-            EditorGUILayout.HelpBox("Off is the safe default. Height To Normal converts _MM grayscale TEX0 into a new normal-map sub-asset, Original Grayscale uses a supported shader parallax property when available. Wii GX/TEV links are not yet decoded: name matching is only a suggestion.",MessageType.Info);
+            EditorGUILayout.HelpBox("Off is the safe default. Height To Normal converts _MM_XX grayscale TEX0 into a generated normal-map sub-asset. Auto pairing requires the SAME prefix and numeric suffix: body_BM_01 -> body_MM_01 (not MM_02). Old unnumbered _BM/_MM is also supported. Wii GX/TEV links are not yet decoded.",MessageType.Info);
             EditorGUILayout.HelpBox("Bress2Unity creates approximate Unity materials from MDL0 and TEX0. Wii GX/TEV shader effects are not fully converted. Assign an external .mat below to replace each renderer material without editing the source BRRES.",MessageType.Info);
 
             BrresNativeImporter importer=(BrresNativeImporter)target;
@@ -208,7 +208,7 @@ namespace MusafirEx.Brres
             if(manifest.availableMmTextures!=null && manifest.availableMmTextures.Count>0)
                 EditorGUILayout.LabelField("Detected _MM TEX0: "+string.Join(", ",manifest.availableMmTextures.ToArray()),EditorStyles.wordWrappedMiniLabel);
             else
-                EditorGUILayout.HelpBox("No TEX0 names ending in _MM were decoded. Check Import TEX0 Textures and whether this BRRES contains the _MM images.",MessageType.Info);
+                EditorGUILayout.HelpBox("No recognized _MM_XX textures were decoded (older _MM names are also supported). Verify Import TEX0 Textures and the BRRES source texture names.",MessageType.Info);
             if(manifest.entries==null || manifest.entries.Count==0)
             {
                 EditorGUILayout.HelpBox("No MDL0 materials found (this archive may contain CHR0 animations only).",MessageType.Info);
@@ -233,11 +233,11 @@ namespace MusafirEx.Brres
                     EditorGUILayout.LabelField("Source texture: "+entry.textureName,EditorStyles.miniLabel);
 
                 // Explicit mapping is required whenever TEV links cannot be inferred
-                // from an exact _BM/_MM or material/_MM shared name stem.
+                // from an exact _BM_XX/_MM_XX pair (or older _BM/_MM).
                 var candidates=manifest.availableMmTextures;
                 if(bumpSlots!=null && candidates!=null && candidates.Count>0)
                 {
-                    var optionNames=new List<string> { "Auto (strict name match)", "None (no _MM)" };
+                    var optionNames=new List<string> { "Auto (exact _BM_XX to _MM_XX)", "None (no _MM)" };
                     optionNames.AddRange(candidates);
                     SerializedProperty selected=FindBumpSlot(bumpSlots,entry.key);
                     string sourceName=selected==null?null:selected.FindPropertyRelative("sourceTextureName").stringValue;
@@ -258,7 +258,7 @@ namespace MusafirEx.Brres
                     }
                 }
                 if(!string.IsNullOrEmpty(entry.suggestedBumpTextureName))
-                    EditorGUILayout.LabelField("Auto-match candidate: "+entry.suggestedBumpTextureName,EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField("Auto paired _BM / _MM: "+entry.suggestedBumpTextureName,EditorStyles.miniLabel);
                 if(entry.sourceBumpTexture!=null)
                     EditorGUILayout.ObjectField("Original _MM",entry.sourceBumpTexture,typeof(Texture2D),false);
                 if(entry.generatedNormalTexture!=null)
@@ -303,13 +303,13 @@ namespace MusafirEx.Brres
                 }
             }
             EditorGUILayout.LabelField("Bump Mapping Preflight",EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Decoded _MM: "+(manifest.availableMmTextures==null?0:manifest.availableMmTextures.Count)+
+            EditorGUILayout.LabelField("Decoded _MM(_XX): "+(manifest.availableMmTextures==null?0:manifest.availableMmTextures.Count)+
                 " | Materials: "+manifest.entries.Count+
                 " | _MM source assigned: "+sourceCount+
                 " | External .mat assigned: "+overrideCount+
                 " | Candidate pairs: "+readyCount,EditorStyles.wordWrappedMiniLabel);
             if(readyCount==0 && overrides.arraySize>0)
-                EditorGUILayout.HelpBox("No material currently has both a linked _MM source and an external .mat. Choose _MM Source for the intended slots, press Apply, then use Copy _MM Bump. If no _MM textures are detected, verify Import TEX0 Textures and source BRRES.",MessageType.Warning);
+                EditorGUILayout.HelpBox("No material currently has both a linked _MM_XX source and an external .mat. Auto requires an exact corresponding _BM_XX texture name. Otherwise select _MM Source manually for each material, click Apply, and retry.",MessageType.Warning);
             // An opt-in batch action for archives with exactly one _MM image.
             // Never silently apply the sole _MM to all model materials.
             if(bumpSlots!=null && manifest.availableMmTextures!=null &&
@@ -402,7 +402,7 @@ namespace MusafirEx.Brres
             if(candidates.Count==0)
             {
                 EditorUtility.DisplayDialog("No bump mapping was applied",
-                    breakdown+"\n\nSelect an _MM Source for each intended material in the BRRES Materials tab, click Apply, and confirm an external .mat is assigned to the same slot. Enable Import TEX0 Textures if the _MM list is empty.",
+                    breakdown+"\n\nSelect the matching _MM_XX Source for each material slot, click Apply, and confirm the external .mat assignment. Auto pairs only identical names/suffixes, e.g. body_BM_01 -> body_MM_01. Enable Import TEX0 Textures if no _MM_XX textures are listed.",
                     "OK");
                 return;
             }
