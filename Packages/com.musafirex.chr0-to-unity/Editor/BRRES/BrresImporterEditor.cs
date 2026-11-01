@@ -282,6 +282,34 @@ namespace MusafirEx.Brres
                 EditorGUILayout.EndVertical();
             }
             EditorGUILayout.Space(6);
+            int sourceCount=0,overrideCount=0,readyCount=0;
+            foreach(BrresMaterialEntry entry in manifest.entries)
+            {
+                if(entry==null)continue;
+                if(entry.sourceBumpTexture!=null)sourceCount++;
+                SerializedProperty currentOverride=FindOverride(overrides,entry.key);
+                Material mat=currentOverride==null?null:
+                    currentOverride.FindPropertyRelative("material").objectReferenceValue as Material;
+                string path=mat==null?null:AssetDatabase.GetAssetPath(mat);
+                if(!string.IsNullOrEmpty(path) && path.StartsWith("Assets/",StringComparison.OrdinalIgnoreCase) &&
+                    path.EndsWith(".mat",StringComparison.OrdinalIgnoreCase))
+                {
+                    overrideCount++;
+                    if(entry.sourceBumpTexture!=null &&
+                       (bumpModeProperty==null ||
+                        (BrresBumpMode)bumpModeProperty.enumValueIndex!=BrresBumpMode.HeightToNormal ||
+                        entry.generatedNormalTexture!=null))
+                        readyCount++;
+                }
+            }
+            EditorGUILayout.LabelField("Bump Mapping Preflight",EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Decoded _MM: "+(manifest.availableMmTextures==null?0:manifest.availableMmTextures.Count)+
+                " | Materials: "+manifest.entries.Count+
+                " | _MM source assigned: "+sourceCount+
+                " | External .mat assigned: "+overrideCount+
+                " | Candidate pairs: "+readyCount,EditorStyles.wordWrappedMiniLabel);
+            if(readyCount==0 && overrides.arraySize>0)
+                EditorGUILayout.HelpBox("No material currently has both a linked _MM source and an external .mat. Choose _MM Source for the intended slots, press Apply, then use Copy _MM Bump. If no _MM textures are detected, verify Import TEX0 Textures and source BRRES.",MessageType.Warning);
             if(overrides.arraySize>0 && bumpModeProperty!=null &&
                !bumpModeProperty.hasMultipleDifferentValues &&
                (BrresBumpMode)bumpModeProperty.enumValueIndex!=BrresBumpMode.Off)
@@ -310,33 +338,64 @@ namespace MusafirEx.Brres
             SerializedProperty overrides,BrresNativeImporter importer)
         {
             if(manifest==null || manifest.entries==null || overrides==null || importer==null)return;
-            if(!EditorUtility.DisplayDialog("Apply _MM bump to extracted Materials?",
-                "This will edit existing external .mat assets that have an _MM source selected. "+
-                "It will not change the BRRES or any other external material properties. "+
-                "You can undo these edits in Unity or source control.",
-                "Update .mat Assets","Cancel"))return;
-            int updated=0,skipped=0;
+            int total=0,missingSource=0,missingNormal=0,missingMaterial=0,notEditable=0,unsupportedShader=0;
+            var candidates=new List<BrresMaterialEntry>();
+            var targetMaterials=new List<Material>();
             foreach(BrresMaterialEntry entry in manifest.entries)
             {
-                if(entry==null || entry.sourceBumpTexture==null)continue;
+                if(entry==null)continue;
+                total++;
+                if(entry.sourceBumpTexture==null){missingSource++;continue;}
+                if(importer.bumpMode==BrresBumpMode.HeightToNormal && entry.generatedNormalTexture==null)
+                {missingNormal++;continue;}
                 SerializedProperty slot=FindOverride(overrides,entry.key);
-                if(slot==null)continue;
-                Material material=slot.FindPropertyRelative("material").objectReferenceValue as Material;
-                if(material==null)continue;
+                Material material=slot==null?null:slot.FindPropertyRelative("material").objectReferenceValue as Material;
+                if(material==null){missingMaterial++;continue;}
                 string path=AssetDatabase.GetAssetPath(material);
                 if(string.IsNullOrEmpty(path) || !path.StartsWith("Assets/",StringComparison.OrdinalIgnoreCase) ||
                    path==importer.assetPath || !path.EndsWith(".mat",StringComparison.OrdinalIgnoreCase))
-                { skipped++;continue; }
+                {notEditable++;continue;}
+                bool compatible=importer.bumpMode==BrresBumpMode.HeightToNormal
+                    ? material.HasProperty("_BumpMap")||material.HasProperty("_NormalMap")
+                    : importer.bumpMode==BrresBumpMode.OriginalGrayscale && material.HasProperty("_ParallaxMap");
+                if(!compatible){unsupportedShader++;continue;}
+                candidates.Add(entry);
+                targetMaterials.Add(material);
+            }
+            string breakdown="BRRES material slots: "+total+
+                "\nNo assigned _MM source: "+missingSource+
+                "\nNormal texture unavailable: "+missingNormal+
+                "\nNo external .mat override: "+missingMaterial+
+                "\nNot an editable Assets/*.mat: "+notEditable+
+                "\nShader lacks required bump property: "+unsupportedShader+
+                "\nReady to update: "+candidates.Count;
+            if(candidates.Count==0)
+            {
+                EditorUtility.DisplayDialog("No bump mapping was applied",
+                    breakdown+"\n\nSelect an _MM Source for each intended material in the BRRES Materials tab, click Apply, and confirm an external .mat is assigned to the same slot. Enable Import TEX0 Textures if the _MM list is empty.",
+                    "OK");
+                return;
+            }
+            if(!EditorUtility.DisplayDialog("Copy _MM bump to external materials?",
+                breakdown+"\n\nThis modifies the listed external .mat assets. The original BRRES is not changed. "+
+                "You can undo the change in Unity or source control.",
+                "Update "+candidates.Count+" .mat Slot(s)","Cancel"))return;
+            int updated=0,skipped=0;
+            for(int i=0;i<candidates.Count;i++)
+            {
+                BrresMaterialEntry entry=candidates[i];
+                Material material=targetMaterials[i];
                 Undo.RecordObject(material,"Apply BRRES _MM Bump");
                 if(BrresBumpMapUtility.Assign(material,entry.sourceBumpTexture,
                     entry.generatedNormalTexture,importer.bumpMode,importer.bumpStrength))
                 { EditorUtility.SetDirty(material);updated++; }
                 else skipped++;
             }
-            AssetDatabase.SaveAssets();
-            EditorUtility.DisplayDialog("Bump mapping applied",
-                "External Materials updated: "+updated+"; skipped: "+skipped+
-                ". These are approximate Unity normal/parallax maps, not reconstructed Wii TEV shaders.",
+            if(updated>0)AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog(updated>0?"Bump mapping copied":"Nothing applied",
+                "External .mat slots updated: "+updated+"; unexpected failures: "+skipped+
+                "\n\n"+breakdown+
+                "\n\nThese are approximate Unity normal/parallax maps, not original Wii TEV shaders.",
                 "OK");
         }
 
