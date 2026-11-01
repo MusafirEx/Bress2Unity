@@ -1,6 +1,6 @@
 # Bress2Unity — Native BRRES / CHR0 Unity Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.3**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.4**
 
 One Unity package with two Editor tools:
 
@@ -18,6 +18,14 @@ The BRRES **Materials → Bump Mapping Preflight** line now reports the number o
 When there is exactly one _MM texture, **Assign sole _MM to unmapped slots (experimental)...** is an optional, explicitly confirmed batch mapping action. It does **not** guarantee original GX/TEV material connectivity and skips manually disabled or previously assigned slots.
 
 To apply bump to existing extracted materials, select the original .brres in Project, enable Height To Normal, assign _MM Source and External Material for each intended slot, click **Apply**, verify Bump Mapping Preflight, then use **Copy _MM Bump To External .mat...**. If no _MM textures are decoded, check Import TEX0 Textures and whether the source BRRES actually contains TEX0 images.
+
+### Numbered Monster Hunter Tri TEX0 pairs — v0.8.0-preview.4
+
+Monster Hunter Tri texture names typically use numbered pairs: `body_BM_01` is the base-color texture and `body_MM_01` is its grayscale bump source; `body_BM_02` must match only `body_MM_02`. The name detector accepts `_MM_XX` where `XX` is one or more ASCII decimal digits (leading zeros are significant), and preserves older unnumbered `_BM`/`_MM` support. Texture-prefix matching is case-insensitive, but matching does not guess across numbers or unrelated material slots.
+
+**How to use:** In BRRES **Materials**, select **Height To Normal**, then **Apply**. The **Detected _MM** list now includes numbered textures. A material whose primary source texture is `<prefix>_BM_<number>` will automatically propose `<prefix>_MM_<same-number>` when present. Otherwise, manually choose the correct **_MM Source** and **Apply**. External extracted `.mat` files still require the explicit **Copy _MM Bump To External .mat...** action; check Bump Mapping Preflight before copying.
+
+**Limit:** The importer currently reads a simplified first MDL0 texture reference, not every Wii GX/TEV stage. Some materials may not automatically identify a base `_BM_XX` even when it exists in the archive; numbered `_MM_XX` images are still detected and can be selected manually.
 
 ## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
 
