@@ -1,6 +1,6 @@
 # Bress2Unity — Native BRRES / CHR0 Unity Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.1**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.2**
 
 One Unity package with two Editor tools:
 
@@ -12,6 +12,8 @@ One Unity package with two Editor tools:
 **Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
 
 ## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
+
+**Hotfix (v0.8.0-preview.2):** Fixed Unity Inspector CS0136 local variable name collision in the _MM dropdown. No changes to how height maps or external materials are processed.
 
 The native BRRES Materials Inspector now exposes **TEX0 _MM / Grayscale Bump Mapping**. The suffix `_MM` is treated as a **candidate** grayscale height/bump texture; this does not prove the original GX/TEV material connection.
 
