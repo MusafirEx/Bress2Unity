@@ -14,8 +14,9 @@ namespace MusafirEx.Brres
 {
     public enum BrresRigType { None=0, Legacy=1, Generic=2, Humanoid=3 }
     public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
+    public enum BrresBumpMode { Off=0, OriginalGrayscale=1, HeightToNormal=2 }
 
-    [ScriptedImporter(5, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(6, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -38,6 +39,16 @@ namespace MusafirEx.Brres
         public Shader materialShaderOverride;
         [Tooltip("Assign external Material assets to specific MDL0 material slots, keyed by model/material index.")]
         public List<BrresMaterialOverride> materialOverrides = new List<BrresMaterialOverride>();
+        [Header("Grayscale _MM Bump Mapping (experimental)")]
+        [Tooltip("Off (default), Original Grayscale via optional parallax property, or Height To Normal via _BumpMap/_NormalMap. No verified Wii TEV correspondence yet.")]
+        public BrresBumpMode bumpMode = BrresBumpMode.Off;
+        [Range(0f,8f)]
+        [Tooltip("Height gradient strength when generating normals. With Original Grayscale this controls an approximate parallax amount.")]
+        public float bumpStrength = 2f;
+        [Tooltip("Invert the source grayscale height values before calculating normals.")]
+        public bool bumpInvertHeight = false;
+        [Tooltip("Optional per-material _MM source selection; otherwise only exact texture/material stem matches are suggested.")]
+        public List<BrresBumpSlotOverride> bumpSlotOverrides = new List<BrresBumpSlotOverride>();
 
         [Header("Rig")]
         [Tooltip("None: no Animator. Legacy: Animation component. Generic: Unity Generic Avatar. Humanoid: validated Humanoid Avatar if bone mapping/rest pose permit.")]
@@ -106,7 +117,29 @@ namespace MusafirEx.Brres
                 materialManifest.name=root.name+"_Materials";
                 context.AddObjectToAsset("brres_materials",materialManifest);
 
-                var textures = importTextures ? parser.LoadTextures(records,warnings) : new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
+                var textures = importTextures
+                    ? parser.LoadTextures(records,warnings,bumpMode==BrresBumpMode.HeightToNormal)
+                    : new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
+                var bumpNormals=new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
+                foreach(var kv in textures)
+                {
+                    if(!BrresBumpMapUtility.IsMm(kv.Key))continue;
+                    materialManifest.availableMmTextures.Add(kv.Key);
+                    if(importMaterials && bumpMode==BrresBumpMode.HeightToNormal)
+                    {
+                        try
+                        {
+                            Texture2D normal=BrresBumpMapUtility.HeightToNormal(kv.Value,bumpStrength,bumpInvertHeight);
+                            bumpNormals[kv.Key]=normal;
+                            context.AddObjectToAsset("normal_MM_"+Safe(kv.Key),normal);
+                        }
+                        catch(Exception error)
+                        {
+                            warnings.Add("TEX0 _MM "+kv.Key+": normal generation failed: "+error.Message);
+                        }
+                    }
+                }
+                materialManifest.availableMmTextures.Sort(StringComparer.OrdinalIgnoreCase);
                 int texIndex=0;
                 foreach(var kv in textures)
                 {
@@ -159,6 +192,40 @@ namespace MusafirEx.Brres
                         string materialName=parsed.MaterialNames[i]??("Material_"+i);
                         string slotKey="mat_"+assetSerial+"_"+i+"_"+Safe(materialName);
                         string textureName=i<parsed.MaterialTextures.Count?parsed.MaterialTextures[i]:null;
+                        string guessedBump=BrresBumpMapUtility.BestMatch(materialName,textureName,textures);
+                        string selectedBump=guessedBump;
+                        if(bumpSlotOverrides!=null)
+                        {
+                            foreach(var slot in bumpSlotOverrides)
+                            {
+                                if(slot==null || slot.key!=slotKey)continue;
+                                if(slot.sourceTextureName==BrresBumpMapUtility.NoBumpOverride)
+                                    selectedBump=null;
+                                else if(!string.IsNullOrEmpty(slot.sourceTextureName))
+                                {
+                                    if(BrresBumpMapUtility.IsMm(slot.sourceTextureName) &&
+                                       textures.ContainsKey(slot.sourceTextureName))
+                                        selectedBump=slot.sourceTextureName;
+                                    else
+                                    {
+                                        selectedBump=null;
+                                        warnings.Add("Material "+materialName+": specified _MM source not present: "+slot.sourceTextureName);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                        Texture2D sourceBump=null,normalMap=null;
+                        if(!string.IsNullOrEmpty(selectedBump))
+                        {
+                            textures.TryGetValue(selectedBump,out sourceBump);
+                            bumpNormals.TryGetValue(selectedBump,out normalMap);
+                        }
+                        string bumpStatus=string.IsNullOrEmpty(selectedBump)
+                            ? "No matching _MM TEX0: choose a source manually (the TEV mapping is not decoded)."
+                            : (bumpMode==BrresBumpMode.Off
+                                ? "_MM available, bump conversion disabled."
+                                : "Bump mode enabled; material shader support is checked below.");
                         Material generated=null;
                         if(importMaterials)
                         {
@@ -181,6 +248,14 @@ namespace MusafirEx.Brres
                                 if(generated.HasProperty("_BaseMap"))generated.SetTexture("_BaseMap",tex);
                                 if(generated.HasProperty("_MainTex"))generated.SetTexture("_MainTex",tex);
                             }
+                            if(bumpMode!=BrresBumpMode.Off && sourceBump!=null)
+                            {
+                                bool attached=BrresBumpMapUtility.Assign(generated,sourceBump,normalMap,bumpMode,bumpStrength);
+                                bumpStatus=attached
+                                    ? (bumpMode==BrresBumpMode.HeightToNormal ? "Generated _MM normal attached." : "Original _MM grayscale assigned to Unity parallax property.")
+                                    : "Shader lacks the necessary bump/height property or _MM decode failed; original retained.";
+                                if(!attached)warnings.Add("Material "+materialName+": "+bumpStatus);
+                            }
                             // Keep the identifier from older versions to preserve
                             // references to imported Material sub-assets.
                             context.AddObjectToAsset(slotKey,generated);
@@ -189,7 +264,12 @@ namespace MusafirEx.Brres
                             key=slotKey, sourceName=materialName,
                             modelName=modelRoot.name, modelIndex=assetSerial,
                             materialIndex=i, textureName=textureName,
-                            generatedMaterial=generated
+                            generatedMaterial=generated,
+                            suggestedBumpTextureName=guessedBump,
+                            appliedBumpTextureName=selectedBump,
+                            sourceBumpTexture=sourceBump,
+                            generatedNormalTexture=normalMap,
+                            bumpStatus=bumpStatus
                         });
                         Material assigned=generated;
                         if(importMaterials && materialOverrides!=null)
