@@ -12,6 +12,18 @@ This implementation adds Unity's `ScriptedImporter` for `.brres` and `.mdl0` in 
 - Embedded TEX0 to Unity Texture2D for I4, I8, IA4, IA8, RGB565, RGB5A3, RGBA8, CMPR formats.
 - Direct asset import (Unity Mesh, Texture2D, Material, GameObject) without spawning nintoolbox, running native executables, or creating intermediate GLB files.
 
+## Experimental grayscale _MM bump mapping — v0.8.0-preview.1
+
+Monster Hunter Tri TEX0 texture names ending in `_MM` can now be inspected and converted from grayscale to approximate Unity tangent-space normals. The source BRRES and original TEX0 texture sub-assets remain intact.
+
+**Material Inspector settings:** `Bump Mode = Off / OriginalGrayscale / HeightToNormal` (Off default), `Strength` (0..8; default 2), `Invert Height`. Every MDL0 material has an **_MM Source** selector: auto strict stem-match, explicitly none, or a named `_MM` TEX0. External Material overrides remain authoritative.
+
+**Implementation details:** the TEX0 decoder keeps readable pixels only for `_MM` when HeightToNormal is enabled; luminance is sampled from RGB. The normal generator samples wrapped left/right/top/bottom height differences, forms the tangent normal `normalize((-dx*strength,-dy*strength,1))`, and saves a linear RGBA32 normal Texture2D sub-asset with mipmaps. Imported mesh tangents are generated via `RecalculateTangents` when UVs are present and HeightToNormal is enabled. `_BumpMap` or `_NormalMap` is assigned when the current Unity shader supports them. OriginalGrayscale attempts `_ParallaxMap` only if present.
+
+**Important limitation:** this importer presently knows one simplified MDL0 primary texture link, **not the complete GX/TEV material stage graph**. Texture names and matches are heuristic. Never infer exact Wii TEV bump behavior from `_MM` suffix or grayscale alone. Test each material visually in Unity against Dolphin.
+
+**Verification:** source changes committed, Inspector/manifest linkage and regression preservation checked statically; actual Unity Editor compilation and rendering tests on `em003.brres` remain outstanding.
+
 ## Materials tab — v0.7.0-preview.1
 
 The native importer Inspector now provides **Model, Rig, Animations, Materials** tabs.
