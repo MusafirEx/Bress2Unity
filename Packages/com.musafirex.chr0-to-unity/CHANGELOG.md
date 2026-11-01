@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0-preview.1] - 2026-11-01
+
+- Add optional **_MM Grayscale Bump Mapping** to the existing BRRES **Materials** tab: **Off** (safe default), **Original Grayscale** (shader-supported parallax) or **Height To Normal** (generated tangent-space normal).
+- Add **Strength**, **Invert Height**, and a per-material **_MM Source** dropdown with strict auto stem match / none / manual selection. Do not attach a random `_MM` to every mesh just because one is present.
+- Preserve original grayscale TEX0 texture sub-assets. Read back only `_MM` pixels when HeightToNormal is requested, generate normal-map sub-assets, add `_NORMALMAP` shader binding, and compute missing mesh tangents for normal-mapped meshes.
+- Retain stable imported mesh/material keys and existing external Material overrides. Extend the material manifest with candidate/source/normal-map diagnostics.
+- Bump the native BRRES ScriptedImporter revision to **6** to reimport existing assets; CHR0 decoder, rig importer and winding repair are unchanged. MOT remains outside the package.
+- **Limitations:** material-to-`_MM` name match is heuristic rather than decoded Wii GX/TEV. The conversion is a Unity approximation; live Unity 2022.3 compilation and rendering on `em003.brres` have not been validated.
+
+
 ## [0.7.0-preview.1] - 2026-10-23
 
 - Add a fully functional **Materials** Inspector tab alongside Model, Rig and Animations for imported BRRES/MDL0 assets.
