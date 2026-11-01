@@ -324,7 +324,8 @@ namespace MusafirEx.Brres
                 Material material=slot.FindPropertyRelative("material").objectReferenceValue as Material;
                 if(material==null)continue;
                 string path=AssetDatabase.GetAssetPath(material);
-                if(string.IsNullOrEmpty(path) || path==importer.assetPath || !path.EndsWith(".mat",StringComparison.OrdinalIgnoreCase))
+                if(string.IsNullOrEmpty(path) || !path.StartsWith("Assets/",StringComparison.OrdinalIgnoreCase) ||
+                   path==importer.assetPath || !path.EndsWith(".mat",StringComparison.OrdinalIgnoreCase))
                 { skipped++;continue; }
                 Undo.RecordObject(material,"Apply BRRES _MM Bump");
                 if(BrresBumpMapUtility.Assign(material,entry.sourceBumpTexture,
