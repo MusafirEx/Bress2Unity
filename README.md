@@ -1,6 +1,6 @@
 # Bress2Unity — Native BRRES / CHR0 Unity Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.2**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.3**
 
 One Unity package with two Editor tools:
 
@@ -10,6 +10,14 @@ One Unity package with two Editor tools:
 > **Unity-tested milestone (23 October 2026):** The user has confirmed that the native BRRES importer and embedded/separate CHR0 workflows work in their Unity project. [Preserved working-code snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested). The importer remains a preview: uncommon Wii formats, precise TEV shading, and advanced skinning are not comprehensively validated. MOT/GNTA is no longer included in the current package.
 
 **Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
+
+### External .mat bump diagnostics — v0.8.0-preview.3
+
+The BRRES **Materials → Bump Mapping Preflight** line now reports the number of decoded _MM TEX0 images, source-mapped material slots, external .mat overrides and ready copy pairs. **Copy _MM Bump To External .mat...** reports specific causes when no materials qualify; it no longer says applied when updated=0.
+
+When there is exactly one _MM texture, **Assign sole _MM to unmapped slots (experimental)...** is an optional, explicitly confirmed batch mapping action. It does **not** guarantee original GX/TEV material connectivity and skips manually disabled or previously assigned slots.
+
+To apply bump to existing extracted materials, select the original .brres in Project, enable Height To Normal, assign _MM Source and External Material for each intended slot, click **Apply**, verify Bump Mapping Preflight, then use **Copy _MM Bump To External .mat...**. If no _MM textures are decoded, check Import TEX0 Textures and whether the source BRRES actually contains TEX0 images.
 
 ## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
 
