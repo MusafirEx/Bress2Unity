@@ -315,6 +315,16 @@ namespace MusafirEx.Brres
                         if(src.HasUV)mesh.SetUVs(0,src.UV);
                         if(src.HasNormal)mesh.SetNormals(src.Normals);
                         else mesh.RecalculateNormals();
+                        if(importMaterials && bumpMode==BrresBumpMode.HeightToNormal && src.HasUV)
+                        {
+                            // Tangent-space normal shaders require an orthogonal
+                            // tangent basis; the old importer never generated one.
+                            try { mesh.RecalculateTangents(); }
+                            catch(Exception ex)
+                            {
+                                warnings.Add("Mesh "+mesh.name+": cannot generate tangents for _MM bump mapping: "+ex.Message);
+                            }
+                        }
                         mesh.RecalculateBounds();
                         var obj=new GameObject(src.Name);
                         obj.transform.SetParent(modelRoot.transform,false);
