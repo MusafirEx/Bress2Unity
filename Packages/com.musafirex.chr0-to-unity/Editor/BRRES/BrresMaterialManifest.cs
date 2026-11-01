@@ -17,6 +17,19 @@ namespace MusafirEx.Brres
         public int modelIndex;
         public int materialIndex;
         public Material generatedMaterial;
+        public string suggestedBumpTextureName;
+        public string appliedBumpTextureName;
+        public Texture2D sourceBumpTexture;
+        public Texture2D generatedNormalTexture;
+        public string bumpStatus;
+    }
+
+    [Serializable]
+    public sealed class BrresBumpSlotOverride
+    {
+        public string key;
+        // Null/empty => auto strict stem-match. __BRRES_NO_BUMP__ => explicitly disabled.
+        public string sourceTextureName;
     }
 
     [Serializable]
@@ -31,6 +44,7 @@ namespace MusafirEx.Brres
     public sealed class BrresMaterialManifest : ScriptableObject
     {
         public List<BrresMaterialEntry> entries = new List<BrresMaterialEntry>();
+        public List<string> availableMmTextures = new List<string>();
     }
 }
 #endif
