@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0-preview.4] - 2026-11-01
+
+- Fix Monster Hunter Tri **numbered TEX0 textures**: `_MM_01`, `_MM_02`, etc. correspond to the same-prefix `_BM_01`, `_BM_02` textures.
+- Correct `_MM_XX` recognition and exact prefix + decimal suffix pairing; retain unnumbered `_MM` compatibility, case-insensitive matching and leading-zero distinctions.
+- Update material Inspector text, detected _MM list and diagnostics. Manual _MM selection remains available when source MDL0 material links are ambiguous.
+- Bump BRRES ScriptedImporter revision from 6 to 7 to refresh existing imports. Original TEX0 data, CHR0, rigging, material override keys and face winding are preserved.
+- Unity Editor compile / visual verification is still pending.
+
+
 ## [0.8.0-preview.3] - 2026-11-01
 
 - Fix misleading **External Materials updated: 0; skipped: 0** result. Material slots without an assigned _MM source or external Material were silently ignored.
