@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0-preview.3] - 2026-11-01
+
+- Fix misleading **External Materials updated: 0; skipped: 0** result. Material slots without an assigned _MM source or external Material were silently ignored.
+- Add **Bump Mapping Preflight** counts for recognized _MM TEX0 textures, material slots, source assignments, external .mat assets and ready pairs.
+- The external material copy action now reports specific reasons: missing _MM, missing generated normal, missing external .mat, uneditable asset path and incompatible shader. No candidates produces **No bump mapping was applied** rather than success.
+- Add an optional, explicitly confirmed **Assign sole _MM to unmapped slots (experimental)...** action for archives containing exactly one _MM texture. Respect manual assignments and disabled slots.
+- No changes to CHR0, rigging, face-winding, original TEX0 textures or other render settings. Unity Editor compilation and live visual tests remain pending.
+
+
 ## [0.8.0-preview.2] - 2026-11-01
 
 - Fix Unity 2022.3 error `CS0136` in `BrresImporterEditor.cs:244`. The _MM texture dropdown local `current` shadowed the external-material variable. Renamed the dropdown index to `currentBumpIndex`.
