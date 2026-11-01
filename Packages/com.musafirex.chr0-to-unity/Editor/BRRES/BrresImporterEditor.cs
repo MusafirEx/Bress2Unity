@@ -143,6 +143,30 @@ namespace MusafirEx.Brres
             existing.FindPropertyRelative("material").objectReferenceValue=value;
         }
 
+        private static SerializedProperty FindBumpSlot(SerializedProperty slots,string key)
+        {
+            if(slots==null || !slots.isArray)return null;
+            for(int i=0;i<slots.arraySize;i++)
+            {
+                SerializedProperty item=slots.GetArrayElementAtIndex(i);
+                if(item.FindPropertyRelative("key").stringValue==key)return item;
+            }
+            return null;
+        }
+
+        private static void SetBumpSlot(SerializedProperty slots,string key,string textureName)
+        {
+            SerializedProperty item=FindBumpSlot(slots,key);
+            if(item==null)
+            {
+                if(string.IsNullOrEmpty(textureName))return;
+                slots.InsertArrayElementAtIndex(slots.arraySize);
+                item=slots.GetArrayElementAtIndex(slots.arraySize-1);
+                item.FindPropertyRelative("key").stringValue=key;
+            }
+            item.FindPropertyRelative("sourceTextureName").stringValue=textureName??string.Empty;
+        }
+
         private void DrawMaterials()
         {
             EditorGUILayout.LabelField("Material Import Settings",EditorStyles.boldLabel);
@@ -155,6 +179,17 @@ namespace MusafirEx.Brres
                 return;
             }
             Prop("materialShaderOverride","Generated Material Shader");
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("TEX0 _MM / Grayscale Bump Mapping",EditorStyles.boldLabel);
+            Prop("bumpMode","Mode");
+            SerializedProperty bumpModeProperty=serializedObject.FindProperty("bumpMode");
+            if(bumpModeProperty!=null && !bumpModeProperty.hasMultipleDifferentValues &&
+               (BrresBumpMode)bumpModeProperty.enumValueIndex!=BrresBumpMode.Off)
+            {
+                Prop("bumpStrength","Strength");
+                Prop("bumpInvertHeight","Invert Height");
+            }
+            EditorGUILayout.HelpBox("Off is the safe default. Height To Normal converts _MM grayscale TEX0 into a new normal-map sub-asset, Original Grayscale uses a supported shader parallax property when available. Wii GX/TEV links are not yet decoded: name matching is only a suggestion.",MessageType.Info);
             EditorGUILayout.HelpBox("Bress2Unity creates approximate Unity materials from MDL0 and TEX0. Wii GX/TEV shader effects are not fully converted. Assign an external .mat below to replace each renderer material without editing the source BRRES.",MessageType.Info);
 
             BrresNativeImporter importer=(BrresNativeImporter)target;
@@ -169,6 +204,10 @@ namespace MusafirEx.Brres
                 EditorGUILayout.HelpBox("No material index is available yet. Apply the current importer settings and reimport this BRRES to generate its material list.",MessageType.Info);
                 return;
             }
+            if(manifest.availableMmTextures!=null && manifest.availableMmTextures.Count>0)
+                EditorGUILayout.LabelField("Detected _MM TEX0: "+string.Join(", ",manifest.availableMmTextures.ToArray()),EditorStyles.wordWrappedMiniLabel);
+            else
+                EditorGUILayout.HelpBox("No TEX0 names ending in _MM were decoded. Check Import TEX0 Textures and whether this BRRES contains the _MM images.",MessageType.Info);
             if(manifest.entries==null || manifest.entries.Count==0)
             {
                 EditorGUILayout.HelpBox("No MDL0 materials found (this archive may contain CHR0 animations only).",MessageType.Info);
@@ -183,6 +222,7 @@ namespace MusafirEx.Brres
                 EditorGUILayout.HelpBox("Material override storage is unavailable.",MessageType.Error);
                 return;
             }
+            SerializedProperty bumpSlots=serializedObject.FindProperty("bumpSlotOverrides");
             foreach(BrresMaterialEntry entry in manifest.entries)
             {
                 if(entry==null)continue;
@@ -190,6 +230,40 @@ namespace MusafirEx.Brres
                 EditorGUILayout.LabelField(entry.sourceName+"  (model "+entry.modelIndex+", slot "+entry.materialIndex+")",EditorStyles.boldLabel);
                 if(!string.IsNullOrEmpty(entry.textureName))
                     EditorGUILayout.LabelField("Source texture: "+entry.textureName,EditorStyles.miniLabel);
+
+                // Explicit mapping is required whenever TEV links cannot be inferred
+                // from an exact _BM/_MM or material/_MM shared name stem.
+                var candidates=manifest.availableMmTextures;
+                if(bumpSlots!=null && candidates!=null && candidates.Count>0)
+                {
+                    var optionNames=new List<string> { "Auto (strict name match)", "None (no _MM)" };
+                    optionNames.AddRange(candidates);
+                    SerializedProperty selected=FindBumpSlot(bumpSlots,entry.key);
+                    string sourceName=selected==null?null:selected.FindPropertyRelative("sourceTextureName").stringValue;
+                    int current=0;
+                    if(sourceName==BrresBumpMapUtility.NoBumpOverride)current=1;
+                    else if(!string.IsNullOrEmpty(sourceName))
+                    {
+                        int ix=candidates.FindIndex(t=>string.Equals(t,sourceName,StringComparison.OrdinalIgnoreCase));
+                        if(ix>=0)current=ix+2;
+                    }
+                    EditorGUI.BeginChangeCheck();
+                    int choice=EditorGUILayout.Popup("_MM Source",current,optionNames.ToArray());
+                    if(EditorGUI.EndChangeCheck())
+                    {
+                        string key=choice==0?"":choice==1?BrresBumpMapUtility.NoBumpOverride:
+                            candidates[choice-2];
+                        SetBumpSlot(bumpSlots,entry.key,key);
+                    }
+                }
+                if(!string.IsNullOrEmpty(entry.suggestedBumpTextureName))
+                    EditorGUILayout.LabelField("Auto-match candidate: "+entry.suggestedBumpTextureName,EditorStyles.miniLabel);
+                if(entry.sourceBumpTexture!=null)
+                    EditorGUILayout.ObjectField("Original _MM",entry.sourceBumpTexture,typeof(Texture2D),false);
+                if(entry.generatedNormalTexture!=null)
+                    EditorGUILayout.ObjectField("Generated Normal",entry.generatedNormalTexture,typeof(Texture2D),false);
+                if(!string.IsNullOrEmpty(entry.bumpStatus))
+                    EditorGUILayout.LabelField(entry.bumpStatus,EditorStyles.wordWrappedMiniLabel);
                 SerializedProperty item=FindOverride(overrides,entry.key);
                 Material current=item==null?null:item.FindPropertyRelative("material").objectReferenceValue as Material;
                 EditorGUI.BeginChangeCheck();
