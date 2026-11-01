@@ -12,6 +12,14 @@ This implementation adds Unity's `ScriptedImporter` for `.brres` and `.mdl0` in 
 - Embedded TEX0 to Unity Texture2D for I4, I8, IA4, IA8, RGB565, RGB5A3, RGBA8, CMPR formats.
 - Direct asset import (Unity Mesh, Texture2D, Material, GameObject) without spawning nintoolbox, running native executables, or creating intermediate GLB files.
 
+### Numbered Monster Hunter Tri TEX0 pairs — v0.8.0-preview.4
+
+Monster Hunter Tri textures commonly use numbered pairs: `body_BM_01` is the base texture and `body_MM_01` its grayscale bump source. A base texture ending `_BM_02` matches only the same prefix ending `_MM_02` (never `_MM_01`). The importer supports `_BM_XX` / `_MM_XX` with ASCII decimal digits (including leading zeros), as well as legacy unnumbered `_BM` / `_MM`. Prefix matching is case-insensitive.
+
+**Workflow:** Under BRRES **Materials**, choose **Height To Normal** and click **Apply**. Numbered `_MM_XX` texture names are now detected. If a material's decoded primary source texture is `<prefix>_BM_<number>`, it will propose `<prefix>_MM_<same-number>` when present. Otherwise, select the source manually and Apply. To copy to extracted external `.mat` assets, check Bump Mapping Preflight then explicitly click **Copy _MM Bump To External .mat...**.
+
+**Limit:** BRRES import currently reads one simplified MDL0 primary texture link, not the complete GX/TEV graph. A numbered bump may be recognized without automatically matching a particular material; manual per-material mapping is still supported.
+
 ## Experimental grayscale _MM bump mapping — v0.8.0-preview.1
 
 Monster Hunter Tri TEX0 texture names ending in `_MM` can now be inspected and converted from grayscale to approximate Unity tangent-space normals. The source BRRES and original TEX0 texture sub-assets remain intact.
