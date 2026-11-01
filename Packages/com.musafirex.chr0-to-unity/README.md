@@ -9,9 +9,17 @@ This Unity package combines two Editor tools:
 
 **Unity-tested milestone (23 October 2026):** The user confirmed this package's BRRES model and CHR0 animation workflows work in Unity. The [tested source snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) is preserved in a separate Git branch. The importer remains **preview/beta** for unsupported model variants, advanced Wii materials and skinning edge cases.
 
+### External .mat bump diagnostics — v0.8.0-preview.3
+
+The BRRES **Materials → Bump Mapping Preflight** line now reports the number of decoded _MM TEX0 images, source-mapped material slots, external .mat overrides and ready copy pairs. **Copy _MM Bump To External .mat...** reports specific causes when no materials qualify; it no longer says applied when updated=0.
+
+When there is exactly one _MM texture, **Assign sole _MM to unmapped slots (experimental)...** is an optional, explicitly confirmed batch mapping action. It does **not** guarantee original GX/TEV material connectivity and skips manually disabled or previously assigned slots.
+
+To apply bump to existing extracted materials, select the original .brres in Project, enable Height To Normal, assign _MM Source and External Material for each intended slot, click **Apply**, verify Bump Mapping Preflight, then use **Copy _MM Bump To External .mat...**. If no _MM textures are decoded, check Import TEX0 Textures and whether the source BRRES actually contains TEX0 images.
+
 ## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
 
-**Hotfix (v0.8.0-preview.2):** Fixed Unity Inspector CS0136 local variable name collision in the _MM dropdown. No changes to how height maps or external materials are processed.
+**Hotfix (v0.8.0-preview.3):** Fixed Unity Inspector CS0136 local variable name collision in the _MM dropdown. No changes to how height maps or external materials are processed.
 
 The native BRRES Materials Inspector now exposes **TEX0 _MM / Grayscale Bump Mapping**. The suffix `_MM` is treated as a **candidate** grayscale height/bump texture; this does not prove the original GX/TEV material connection.
 
