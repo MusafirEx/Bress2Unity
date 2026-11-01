@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0-preview.2] - 2026-11-01
+
+- Fix Unity 2022.3 error `CS0136` in `BrresImporterEditor.cs:244`. The _MM texture dropdown local `current` shadowed the external-material variable. Renamed the dropdown index to `currentBumpIndex`.
+- No changes to BRRES decoding, CHR0 animation conversion, generated normal textures or material overrides.
+- Source fix committed; recompile in Unity required to verify no further diagnostics.
+
+
 ## [0.8.0-preview.1] - 2026-11-01
 
 - Add optional **_MM Grayscale Bump Mapping** to the existing BRRES **Materials** tab: **Off** (safe default), **Original Grayscale** (shader-supported parallax) or **Height To Normal** (generated tangent-space normal).
