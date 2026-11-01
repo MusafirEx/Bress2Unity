@@ -187,7 +187,8 @@ namespace MusafirEx.Brres
                (BrresBumpMode)bumpModeProperty.enumValueIndex!=BrresBumpMode.Off)
             {
                 Prop("bumpStrength","Strength");
-                Prop("bumpInvertHeight","Invert Height");
+                if((BrresBumpMode)bumpModeProperty.enumValueIndex==BrresBumpMode.HeightToNormal)
+                    Prop("bumpInvertHeight","Invert Height");
             }
             EditorGUILayout.HelpBox("Off is the safe default. Height To Normal converts _MM grayscale TEX0 into a new normal-map sub-asset, Original Grayscale uses a supported shader parallax property when available. Wii GX/TEV links are not yet decoded: name matching is only a suggestion.",MessageType.Info);
             EditorGUILayout.HelpBox("Bress2Unity creates approximate Unity materials from MDL0 and TEX0. Wii GX/TEV shader effects are not fully converted. Assign an external .mat below to replace each renderer material without editing the source BRRES.",MessageType.Info);
@@ -281,6 +282,19 @@ namespace MusafirEx.Brres
                 EditorGUILayout.EndVertical();
             }
             EditorGUILayout.Space(6);
+            if(overrides.arraySize>0 && bumpModeProperty!=null &&
+               !bumpModeProperty.hasMultipleDifferentValues &&
+               (BrresBumpMode)bumpModeProperty.enumValueIndex!=BrresBumpMode.Off)
+            {
+                EditorGUILayout.HelpBox("External .mat overrides are in use: the generated _MM maps are NOT automatically written into those .mat assets. Use the explicit copy button below, or clear external overrides and Apply.",MessageType.Warning);
+                using(new EditorGUI.DisabledScope(serializedObject.hasModifiedProperties))
+                {
+                    if(GUILayout.Button("Copy _MM Bump To External .mat...",GUILayout.Height(25)))
+                        CopyBumpsToExternalMaterials(manifest,overrides,importer);
+                }
+                if(serializedObject.hasModifiedProperties)
+                    EditorGUILayout.LabelField("Click Apply before copying bump maps into external materials.",EditorStyles.miniLabel);
+            }
             using(new EditorGUILayout.HorizontalScope())
             {
                 if(GUILayout.Button("Extract Materials...",GUILayout.Height(25)))
@@ -290,6 +304,39 @@ namespace MusafirEx.Brres
                         overrides.ClearArray();
             }
             EditorGUILayout.HelpBox("Material assignments are applied when you click Apply. Extract Materials makes editable .mat files inside Assets and assigns them as external overrides.",MessageType.None);
+        }
+
+        private static void CopyBumpsToExternalMaterials(BrresMaterialManifest manifest,
+            SerializedProperty overrides,BrresNativeImporter importer)
+        {
+            if(manifest==null || manifest.entries==null || overrides==null || importer==null)return;
+            if(!EditorUtility.DisplayDialog("Apply _MM bump to extracted Materials?",
+                "This will edit existing external .mat assets that have an _MM source selected. "+
+                "It will not change the BRRES or any other external material properties. "+
+                "You can undo these edits in Unity or source control.",
+                "Update .mat Assets","Cancel"))return;
+            int updated=0,skipped=0;
+            foreach(BrresMaterialEntry entry in manifest.entries)
+            {
+                if(entry==null || entry.sourceBumpTexture==null)continue;
+                SerializedProperty slot=FindOverride(overrides,entry.key);
+                if(slot==null)continue;
+                Material material=slot.FindPropertyRelative("material").objectReferenceValue as Material;
+                if(material==null)continue;
+                string path=AssetDatabase.GetAssetPath(material);
+                if(string.IsNullOrEmpty(path) || path==importer.assetPath || !path.EndsWith(".mat",StringComparison.OrdinalIgnoreCase))
+                { skipped++;continue; }
+                Undo.RecordObject(material,"Apply BRRES _MM Bump");
+                if(BrresBumpMapUtility.Assign(material,entry.sourceBumpTexture,
+                    entry.generatedNormalTexture,importer.bumpMode,importer.bumpStrength))
+                { EditorUtility.SetDirty(material);updated++; }
+                else skipped++;
+            }
+            AssetDatabase.SaveAssets();
+            EditorUtility.DisplayDialog("Bump mapping applied",
+                "External Materials updated: "+updated+"; skipped: "+skipped+
+                ". These are approximate Unity normal/parallax maps, not reconstructed Wii TEV shaders.",
+                "OK");
         }
 
         private static string SafeFileName(string s)
