@@ -241,15 +241,15 @@ namespace MusafirEx.Brres
                     optionNames.AddRange(candidates);
                     SerializedProperty selected=FindBumpSlot(bumpSlots,entry.key);
                     string sourceName=selected==null?null:selected.FindPropertyRelative("sourceTextureName").stringValue;
-                    int current=0;
-                    if(sourceName==BrresBumpMapUtility.NoBumpOverride)current=1;
+                    int currentBumpIndex=0;
+                    if(sourceName==BrresBumpMapUtility.NoBumpOverride)currentBumpIndex=1;
                     else if(!string.IsNullOrEmpty(sourceName))
                     {
                         int ix=candidates.FindIndex(t=>string.Equals(t,sourceName,StringComparison.OrdinalIgnoreCase));
-                        if(ix>=0)current=ix+2;
+                        if(ix>=0)currentBumpIndex=ix+2;
                     }
                     EditorGUI.BeginChangeCheck();
-                    int choice=EditorGUILayout.Popup("_MM Source",current,optionNames.ToArray());
+                    int choice=EditorGUILayout.Popup("_MM Source",currentBumpIndex,optionNames.ToArray());
                     if(EditorGUI.EndChangeCheck())
                     {
                         string key=choice==0?"":choice==1?BrresBumpMapUtility.NoBumpOverride:
