@@ -1,6 +1,6 @@
 # Bress2Unity — Native BRRES / CHR0 Unity Importer
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.7.0-preview.1**
+**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.1**
 
 One Unity package with two Editor tools:
 
@@ -10,6 +10,24 @@ One Unity package with two Editor tools:
 > **Unity-tested milestone (23 October 2026):** The user has confirmed that the native BRRES importer and embedded/separate CHR0 workflows work in their Unity project. [Preserved working-code snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested). The importer remains a preview: uncommon Wii formats, precise TEV shading, and advanced skinning are not comprehensively validated. MOT/GNTA is no longer included in the current package.
 
 **Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
+
+## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
+
+The native BRRES Materials Inspector now exposes **TEX0 _MM / Grayscale Bump Mapping**. The suffix `_MM` is treated as a **candidate** grayscale height/bump texture; this does not prove the original GX/TEV material connection.
+
+| Mode | Behavior |
+|---|---|
+| **Off** (**default**) | Keep previous material behavior. Preserve decoded original TEX0 textures. |
+| **OriginalGrayscale** | Retain original grayscale `_MM` and assign to a shader's `_ParallaxMap` if supported. Approximate Unity parallax, not Wii bump reconstruction. |
+| **HeightToNormal** | Convert grayscale intensity gradients to a linear tangent-space normal-map sub-asset, attach to `_BumpMap` (Standard / URP Lit) or `_NormalMap` (HDRP Lit) if supported, and generate mesh tangents for normal-mapped meshes with UVs. |
+
+**Options:** Strength (0–8, default 2) and **Invert Height**. Both are set on the BRRES importer's **Materials** tab; click **Apply** to regenerate material and normal-map sub-assets. When Bump Mode is Off, no new normal maps are created. The original `_MM` Texture2D always remains a separate unchanged TEX0 sub-asset when **Import TEX0 Textures** is enabled.
+
+**Per-material source selection:** The Inspector lists recognized `_MM` TEX0 texture names and provides an **_MM Source** dropdown for every MDL0 material: **Auto (strict name match)**, **None**, or a specific `_MM` texture. Auto only matches a texture named `<stem>_MM` when the diffuse texture name (`<stem>_BM`, etc.) or material name shares the same stem. It will **never** apply a random `_MM` texture to every material simply because only one exists. The material index sub-asset records the candidate, chosen texture, original Texture2D, generated normal map and status. External `.mat` overrides still take precedence and are not automatically modified.
+
+**Sample test:** Open `Assets/10/em003/em003.brres` → **Materials**. If this file contains a recognized `_MM` TEX0, select **Height To Normal**, Strength `2`, Invert Height off, choose the correct `_MM` source for each relevant MDL0 material, and click Apply. Inspect the generated Material and Normal Map sub-assets, and visually compare with the original Wii rendering in Dolphin. If the brightness/relief direction appears reversed, toggle Invert Height; compare lower Strength values to avoid excessive detail.
+
+**Limitations:** The BRRES importer currently reads only a simplified MDL0 primary texture link, not the TEV stage graph. No automatic proof that any particular `_MM` is wired to the relevant material exists. Tangent-space normal mapping is an *approximation* of Wii bump mapping. Custom shaders may not have supported properties. Unity Editor compilation, source/slot matching on `em003.brres`, normal-map preview, and correct TEV equivalence **have not yet been verified**.
 
 ## FBX-style Materials tab — v0.7.0-preview.1
 
