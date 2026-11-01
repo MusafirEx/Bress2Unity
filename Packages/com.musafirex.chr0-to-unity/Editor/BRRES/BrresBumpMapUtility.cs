@@ -11,40 +11,75 @@ namespace MusafirEx.Brres
     {
         internal const string NoBumpOverride="__BRRES_NO_BUMP__";
 
+        // Monster Hunter Tri commonly numbers each matching texture pair:
+        // body_BM_01 -> body_MM_01, body_BM_02 -> body_MM_02.
+        // Keep the older unnumbered _MM name supported as well.
+        // The digits are compared literally: _01 must never pair with _02 or _1.
+        private static bool IsAsciiDigits(string value,int start)
+        {
+            if(string.IsNullOrEmpty(value) || start>=value.Length)return false;
+            for(int i=start;i<value.Length;i++)
+                if(value[i]<'0'||value[i]>'9')return false;
+            return true;
+        }
+
+        private static bool HasTextureSuffix(string name,string type)
+        {
+            if(string.IsNullOrEmpty(name))return false;
+            string ending="_"+type;
+            if(name.EndsWith(ending,StringComparison.OrdinalIgnoreCase))return true;
+            int end=name.LastIndexOf('_');
+            if(end<0 || !IsAsciiDigits(name,end+1))return false;
+            return name.Substring(0,end).EndsWith(ending,StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static bool IsMm(string textureName)
         {
-            return !string.IsNullOrEmpty(textureName) &&
-                   textureName.EndsWith("_MM",StringComparison.OrdinalIgnoreCase);
+            return HasTextureSuffix(textureName,"MM");
+        }
+
+        internal static bool IsBm(string textureName)
+        {
+            return HasTextureSuffix(textureName,"BM");
+        }
+
+        // Returns only literal counterpart names; no fallback to other suffix numbers.
+        // Examples: body_BM_01 => body_MM_01; body_BM => body_MM.
+        internal static string MatchingMmName(string baseTextureName)
+        {
+            if(!IsBm(baseTextureName))return null;
+            int last=baseTextureName.LastIndexOf('_');
+            if(last>=0 && IsAsciiDigits(baseTextureName,last+1))
+            {
+                string prefix=baseTextureName.Substring(0,last);
+                return prefix.Substring(0,prefix.Length-3)+"_MM"+baseTextureName.Substring(last);
+            }
+            return baseTextureName.Substring(0,baseTextureName.Length-3)+"_MM";
         }
 
         internal static string BestMatch(string materialName,string diffuseTextureName,
             Dictionary<string,Texture2D> sourceTextures)
         {
             if(sourceTextures==null || sourceTextures.Count==0)return null;
-            // Name matching is a hypothesis, NOT proof of the Wii TEV connection.
-            // Do not guess from a single unmatched _MM texture in the archive.
-            var stems=new List<string>();
-            AddStem(stems,diffuseTextureName);
-            AddStem(stems,materialName);
-            foreach(string stem in stems)
-            {
-                string candidate=stem+"_MM";
-                foreach(var pair in sourceTextures)
-                    if(IsMm(pair.Key)&&string.Equals(pair.Key,candidate,StringComparison.OrdinalIgnoreCase))
-                        return pair.Key;
-            }
-            return null;
+            // Use the actual MDL0 primary _BM texture first. A material name is
+            // considered only if it already follows the exact _BM[_NN] convention.
+            // TEV links remain unverified, so never guess by archive proximity or
+            // by a suffix number without the same texture prefix.
+            string match=FindMmCounterpart(diffuseTextureName,sourceTextures);
+            if(match!=null)return match;
+            return FindMmCounterpart(materialName,sourceTextures);
         }
 
-        private static void AddStem(List<string> stems,string source)
+        private static string FindMmCounterpart(string baseTextureName,
+            Dictionary<string,Texture2D> sourceTextures)
         {
-            if(string.IsNullOrEmpty(source))return;
-            source=source.Trim();
-            if(source.EndsWith("_BM",StringComparison.OrdinalIgnoreCase) ||
-               source.EndsWith("_MM",StringComparison.OrdinalIgnoreCase) ||
-               source.EndsWith("_SM",StringComparison.OrdinalIgnoreCase))
-                source=source.Substring(0,source.Length-3);
-            if(source.Length>0 && !stems.Contains(source))stems.Add(source);
+            string candidate=MatchingMmName(baseTextureName);
+            if(candidate==null)return null;
+            foreach(var pair in sourceTextures)
+                if(IsMm(pair.Key) &&
+                   string.Equals(pair.Key,candidate,StringComparison.OrdinalIgnoreCase))
+                    return pair.Key;
+            return null;
         }
 
         internal static Texture2D HeightToNormal(Texture2D grayscale,float strength,bool invertHeight)
