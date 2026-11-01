@@ -1,6 +1,6 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.8.0-preview.2 — Unity 2022.3 LTS, Editor-only**
+**Version 0.8.0-preview.4 — Unity 2022.3 LTS, Editor-only**
 
 This Unity package combines two Editor tools:
 
@@ -16,6 +16,14 @@ The BRRES **Materials → Bump Mapping Preflight** line now reports the number o
 When there is exactly one _MM texture, **Assign sole _MM to unmapped slots (experimental)...** is an optional, explicitly confirmed batch mapping action. It does **not** guarantee original GX/TEV material connectivity and skips manually disabled or previously assigned slots.
 
 To apply bump to existing extracted materials, select the original .brres in Project, enable Height To Normal, assign _MM Source and External Material for each intended slot, click **Apply**, verify Bump Mapping Preflight, then use **Copy _MM Bump To External .mat...**. If no _MM textures are decoded, check Import TEX0 Textures and whether the source BRRES actually contains TEX0 images.
+
+### Numbered Monster Hunter Tri TEX0 pairs — v0.8.0-preview.4
+
+Monster Hunter Tri textures commonly use numbered pairs: `body_BM_01` is the base texture and `body_MM_01` its grayscale bump source. A base texture ending `_BM_02` matches only the same prefix ending `_MM_02` (never `_MM_01`). The importer supports `_BM_XX` / `_MM_XX` with ASCII decimal digits (including leading zeros), as well as legacy unnumbered `_BM` / `_MM`. Prefix matching is case-insensitive.
+
+**Workflow:** Under BRRES **Materials**, choose **Height To Normal** and click **Apply**. Numbered `_MM_XX` texture names are now detected. If a material's decoded primary source texture is `<prefix>_BM_<number>`, it will propose `<prefix>_MM_<same-number>` when present. Otherwise, select the source manually and Apply. To copy to extracted external `.mat` assets, check Bump Mapping Preflight then explicitly click **Copy _MM Bump To External .mat...**.
+
+**Limit:** BRRES import currently reads one simplified MDL0 primary texture link, not the complete GX/TEV graph. A numbered bump may be recognized without automatically matching a particular material; manual per-material mapping is still supported.
 
 ## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
 
