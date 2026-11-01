@@ -1,6 +1,6 @@
 {
   "name": "com.musafirex.chr0-to-unity",
-  "version": "0.8.0-preview.2",
+  "version": "0.8.0-preview.3",
   "displayName": "Bress2Unity — BRRES / CHR0 / Rig / Materials Importer",
   "description": "Import Wii BRRES/MDL0 models, CHR0 animation, rigs and materials in Unity 2022.3; experimental _MM grayscale height-to-normal and per-material bump source mapping.",
   "unity": "2022.3",
