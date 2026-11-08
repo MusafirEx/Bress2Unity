@@ -125,17 +125,31 @@ NW4R BRRES may store CHR0 bone names in its **shared string pool**, beyond the C
 Only **CHR0 v5** is supported by the CHR0 decoder. Other **BRRES animation formats** such as SRT0, PAT0 and VIS0 are not converted by this feature. MOT/GNTA is not supported by this UPM package. Animation-only files with no model cannot guarantee full bone paths without a rig.
 
 
-## Install with Unity Package Manager
+## Install with Unity Package Manager (UPM)
 
-1. Install [Git](https://git-scm.com/download/win) and ensure it is available on PATH.
-2. Unity → **Window → Package Manager** → **+ → Add package from git URL**.
-3. Paste this package URL:
+**Main BRRES / MDL0 / CHR0 package** — installs from the `main` branch at the exact folder containing `package.json`.
+
+1. Install [Git for Windows](https://git-scm.com/download/win) (or Git for your OS) and make sure `git` is available on `PATH`.
+2. In Unity 2022.3, open **Window → Package Manager → + → Add package from git URL...**
+3. Copy and paste this **Git URL**, not the repository's web/browser URL:
 
 ```text
-https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-to-unity
+https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-to-unity#main
 ```
 
-4. Click **Add**. Delete older copies of `CHR0ToUnityAnimConverter.cs` in `Assets` if you installed the previous standalone version, to avoid duplicate class definitions.
+4. Select **Add**. The installed package ID is `com.musafirex.chr0-to-unity`.
+
+For projects managed directly through `Packages/manifest.json`, add the dependency to the existing `dependencies` object:
+
+```json
+"com.musafirex.chr0-to-unity": "https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-to-unity#main"
+```
+
+The URL uses `?path=/Packages/com.musafirex.chr0-to-unity` because the Unity package is in a repository **subdirectory**, and the `#main` revision must come **after** the path. Do not omit `?path=`, which would make UPM look for `package.json` at the repository root.
+
+For the separately maintained, optional experimental MOT/GNTA tool, use [Experimental/MOTUnity](https://github.com/MusafirEx/Bress2Unity/tree/main/Experimental/MOTUnity) and its own Git URL; MOT is **not** part of the main package.
+
+**Upgrade notes:** If the same package is already installed under the previous Git URL without `#main`, replace the dependency rather than adding a duplicate. Refresh/Update the Git dependency as needed because Unity records its resolved commit in `packages-lock.json`. If you previously copied `CHR0ToUnityAnimConverter.cs` into `Assets`, remove the duplicate standalone script to avoid class conflicts.
 
 ## Native model import (BRRES/MDL0 → Unity)
 
