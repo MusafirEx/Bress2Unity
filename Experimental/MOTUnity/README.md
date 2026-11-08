@@ -9,10 +9,10 @@ This is a separate, **opt-in experimental tool**, following the same research wo
 Unity Package Manager → **Add package from Git URL**:
 
 ```
-https://github.com/MusafirEx/Bress2Unity.git?path=/Experimental/MOTUnity
+https://github.com/MusafirEx/Bress2Unity.git?path=/Experimental/MOTUnity#main
 ```
 
-The BRRES/CHR0 package remains independently installable at `?path=/Packages/com.musafirex.chr0-to-unity`. Both packages have different package identifiers and assembly names.
+The BRRES/CHR0 main package is a separate UPM dependency: `https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-to-unity#main`. Both packages have different package identifiers and assembly names. For either package, `?path=` must appear before `#main`.
 
 ## Fix for only one bone moving (v0.1.1-preview.1)
 
