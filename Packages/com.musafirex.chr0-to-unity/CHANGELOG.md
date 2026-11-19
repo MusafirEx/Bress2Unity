@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0-preview.5] - 2026-11-20
+
+- Align the BRRES **Model → Scale** control with EMD2Unity's model importer. Keep the serialized `unitsToMeters` field to preserve values in existing `.brres.meta` files; the Inspector now labels it **Scale** (default `1`).
+- Continue scaling source mesh vertex coordinates and MDL0 bone translation / node-matrix translation at import time. Bone rotation and local scale multipliers remain unchanged, and the imported root Transform stays at unit scale.
+- Fix embedded CHR0 position animation scale when bound to a model in the **same BRRES**: scale source translation keyframes using the same effective factor as geometry and bone rest positions. Correctly recover unscaled bind-pose fallback values for missing position channels to prevent double-scaling.
+- Do not alter standalone CHR0 conversion, animation-only BRRES clips, or clips bound to external rigs (which may have a different import scale). Default `Scale=1` preserves existing behavior.
+- Increase native BRRES ScriptedImporter revision to **8** so existing assets reimport consistently.
+- Source-level verification completed; Unity Editor compilation, rig deformation and animation playback after reimport still require live testing.
+
+
 ## [0.8.0-preview.4] - 2026-11-01
 
 - Fix Monster Hunter Tri **numbered TEX0 textures**: `_MM_01`, `_MM_02`, etc. correspond to the same-prefix `_BM_01`, `_BM_02` textures.
