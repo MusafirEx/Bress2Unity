@@ -46,7 +46,8 @@ namespace MusafirEx.Brres
             EditorGUILayout.LabelField("Geometry",EditorStyles.boldLabel);
             Prop("flipX","Flip X (Wii → Unity)");
             Prop("flipUV","Flip UV V");
-            Prop("unitsToMeters","Units To Meters");
+            Prop("unitsToMeters","Scale");
+            EditorGUILayout.HelpBox("Scale works like EMD2Unity: 1 = original source size. It scales mesh vertices, bone translations, and CHR0 position keys when the animation is bound to a model in the same BRRES. Local bone scale and rotations remain unchanged. Previously saved Units To Meters values are retained. External animation rigs use their own transform scale and are not automatically rescaled.",MessageType.Info);
             Prop("importTextures","Import TEX0 Textures");
             Prop("importSkinning","Import Skinning");
             Prop("reverseFaceWinding","Reverse Face Winding (Manual Override)");
