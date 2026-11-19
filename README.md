@@ -4,7 +4,7 @@
 
 [![Unity 2022.3](https://img.shields.io/badge/Unity-2022.3%20LTS-222222)](https://unity.com/releases/editor/whats-new/2022.3)
 [![UPM Git package](https://img.shields.io/badge/UPM-Git%20package-blue)](https://docs.unity3d.com/2022.3/Documentation/Manual/upm-ui-giturl.html)
-[![Version](https://img.shields.io/badge/version-0.8.0--preview.4-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
+[![Version](https://img.shields.io/badge/version-0.8.0--preview.5-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
 
 Import Nintendo Wii **BRRES / MDL0** models, their embedded **TEX0** textures, skeletons, basic materials, and **CHR0** animations directly into Unity. Bress2Unity is an **Editor-only preview** package: some Wii formats and exact GX/TEV rendering are not yet supported.
 
@@ -18,7 +18,7 @@ https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-t
 
 The Git URL above is **for Unity Package Manager, not a web page to open in the browser**. You must have [Git](https://git-scm.com/downloads) installed and accessible on `PATH`.
 
-**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.4`
+**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.5`
 
 Alternatively, add this entry **inside the existing `dependencies` object** in your Unity project's `Packages/manifest.json`:
 
@@ -36,7 +36,7 @@ Alternatively, add this entry **inside the existing `dependencies` object** in y
 
 | Feature | What it does |
 | --- | --- |
-| **Model** | Imports supported BRRES and MDL0 meshes, skeleton hierarchy, UVs and skin weights |
+| **Model** | Imports supported BRRES and MDL0 meshes, skeleton hierarchy, UVs and skin weights; Model tab offers EMD2Unity-style **Scale** |
 | **Textures** | Decodes common Wii TEX0 formats; paletted TEX0 / PLT0 support remains limited |
 | **Rig** | Options for None, Legacy, Generic or experimental Humanoid Avatar generation |
 | **Animations** | Imports supported CHR0 v5 clips embedded in BRRES, including animation-only archives |
@@ -44,6 +44,17 @@ Alternatively, add this entry **inside the existing `dependencies` object** in y
 | **Grayscale bump** | Optional `_BM_01 ↔ _MM_01` matching and conversion of `_MM_XX` height textures into normal maps |
 
 All BRRES importer settings are available by selecting a `.brres` or `.mdl0` asset and using its **Model / Rig / Animations / Materials** Inspector tabs.
+
+### Model Scale — same approach as EMD2Unity
+
+The BRRES Model tab now shows **Scale** (default `1`), matching the EMD2Unity import workflow. `Scale = 0.01` imports a model at 1% of its source dimensions; `Scale = 2` doubles its source dimensions. This changes **imported geometry**, not the prefab root's Transform scale:
+
+- Model vertices and MDL0 bone translations (including node-matrix translation) use the same scale factor.
+- Original bone rotations, local bone scale multipliers, normals, UVs and materials are not scaled.
+- Embedded CHR0 **position keys** bound to a model inside the same BRRES use the same scale; position fallback values for partially animated bones are handled without double-scaling.
+- Standalone CHR0, animation-only archives and clips assigned to **external** rigs retain their existing behavior. Match the external rig's scale manually when needed.
+
+The underlying serialized property is still `unitsToMeters`, so previously configured `.brres.meta` values remain compatible. Click **Apply** to reimport and compare the resulting rig and animations at `Scale = 1` and your preferred size. This is not a claim that Wii and PS3 game-world unit sizes are identical.
 
 ### Quick start — BRRES model
 
