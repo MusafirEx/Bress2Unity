@@ -16,7 +16,7 @@ namespace MusafirEx.Brres
     public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
     public enum BrresBumpMode { Off=0, OriginalGrayscale=1, HeightToNormal=2 }
 
-    [ScriptedImporter(7, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(8, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -25,7 +25,8 @@ namespace MusafirEx.Brres
         public bool reverseFaceWinding = false;
         [Tooltip("Flip source UV V coordinate to match imported Wii textures.")]
         public bool flipUV = true;
-        [Tooltip("Model unit scale (1 preserves the original BRRES / MDL0 units).")]
+        [Min(0.000001f)]
+        [Tooltip("EMD2Unity-style model Scale. Multiplies imported mesh positions, bone translations, and embedded CHR0 position animation keys. Scale 1 keeps original BRRES / MDL0 units. Existing Units To Meters settings are preserved.")]
         public float unitsToMeters = 1f;
         [Tooltip("Import TEX0 images from BRRES into Unity Texture2D sub-assets.")]
         public bool importTextures = true;
@@ -100,7 +101,12 @@ namespace MusafirEx.Brres
                 byte[] source = File.ReadAllBytes(context.assetPath);
                 if(source.Length > 512*1024*1024)
                     throw new InvalidDataException("Resource exceeds 512 MB import safety limit");
-                var parser = new BrresMdl0Reader(source, flipX, flipUV, Mathf.Clamp(unitsToMeters,0.000001f,10000f));
+                // A single conversion factor must be shared by geometry, skeleton
+                // and CHR0 position curves. Keep the existing serialized field
+                // name so users' per-asset Units To Meters values survive.
+                float effectiveScale = float.IsNaN(unitsToMeters) || float.IsInfinity(unitsToMeters)
+                    ? 1f : Mathf.Clamp(unitsToMeters,0.000001f,10000f);
+                var parser = new BrresMdl0Reader(source, flipX, flipUV, effectiveScale);
                 var records = parser.FindResources();
                 var modelResources = records.FindAll(r => r.Magic == "MDL0");
                 var chr0Resources = records.FindAll(r => r.Magic == "CHR0");
@@ -407,8 +413,14 @@ namespace MusafirEx.Brres
                             string unique = clipName;
                             for(int suffix=1;!usedNames.Add(unique);suffix++) unique=clipName+"_"+suffix;
                             int mapped;
+                            // Only embedded CHR0 bound to a model imported from THIS BRRES
+                            // inherits its model scale. An external rig may use a
+                            // different import scale, so preserve its old behavior.
+                            float clipPositionScale = rig!=null && modelRoots.Contains(rig)
+                                ? effectiveScale : 1f;
                             var clip = CHR0ToUnityAnimConverter.CreateEmbeddedAnimation(raw,unique,rig,
-                                Mathf.Clamp(animationFps,1,120),Mathf.Clamp(animationAxis,0,2),animationLoop,out mapped);
+                                Mathf.Clamp(animationFps,1,120),Mathf.Clamp(animationAxis,0,2),animationLoop,out mapped,
+                                clipPositionScale);
                             // Legacy Animation requires legacy clips; Mecanim Generic and
                             // Humanoid use non-legacy clips as before.
                             if(rigType==BrresRigType.Legacy)
