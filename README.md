@@ -1,233 +1,100 @@
-# Bress2Unity — Native BRRES / CHR0 Unity Importer
+# Bress2Unity
 
-**Unity 2022.3 LTS · Unity Package Manager (UPM) · v0.8.0-preview.4**
+**Native BRRES / MDL0 model and CHR0 animation importer for Unity 2022.3 LTS**
 
-One Unity package with two Editor tools:
+[![Unity 2022.3](https://img.shields.io/badge/Unity-2022.3%20LTS-222222)](https://unity.com/releases/editor/whats-new/2022.3)
+[![UPM Git package](https://img.shields.io/badge/UPM-Git%20package-blue)](https://docs.unity3d.com/2022.3/Documentation/Manual/upm-ui-giturl.html)
+[![Version](https://img.shields.io/badge/version-0.8.0--preview.4-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
 
-- **BRRES / MDL0 → Unity model assets:** Import meshes, skeletons, textures and materials directly, without requiring a GLB conversion.
-- **CHR0 → Unity AnimationClips:** Import multiple embedded CHR0 animations from BRRES archives, or convert CHR0 using a selected rig.
+Import Nintendo Wii **BRRES / MDL0** models, their embedded **TEX0** textures, skeletons, basic materials, and **CHR0** animations directly into Unity. Bress2Unity is an **Editor-only preview** package: some Wii formats and exact GX/TEV rendering are not yet supported.
 
-> **Unity-tested milestone (23 October 2026):** The user has confirmed that the native BRRES importer and embedded/separate CHR0 workflows work in their Unity project. [Preserved working-code snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested). The importer remains a preview: uncommon Wii formats, precise TEV shading, and advanced skinning are not comprehensively validated. MOT/GNTA is no longer included in the current package.
+## Install with Unity Package Manager
 
-**Milestone:** [First Unity-tested release snapshot](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested) · `v0.3.0-preview.1` · 2026-10-23.
-
-### External .mat bump diagnostics — v0.8.0-preview.3
-
-The BRRES **Materials → Bump Mapping Preflight** line now reports the number of decoded _MM TEX0 images, source-mapped material slots, external .mat overrides and ready copy pairs. **Copy _MM Bump To External .mat...** reports specific causes when no materials qualify; it no longer says applied when updated=0.
-
-When there is exactly one _MM texture, **Assign sole _MM to unmapped slots (experimental)...** is an optional, explicitly confirmed batch mapping action. It does **not** guarantee original GX/TEV material connectivity and skips manually disabled or previously assigned slots.
-
-To apply bump to existing extracted materials, select the original .brres in Project, enable Height To Normal, assign _MM Source and External Material for each intended slot, click **Apply**, verify Bump Mapping Preflight, then use **Copy _MM Bump To External .mat...**. If no _MM textures are decoded, check Import TEX0 Textures and whether the source BRRES actually contains TEX0 images.
-
-### Numbered Monster Hunter Tri TEX0 pairs — v0.8.0-preview.4
-
-Monster Hunter Tri texture names typically use numbered pairs: `body_BM_01` is the base-color texture and `body_MM_01` is its grayscale bump source; `body_BM_02` must match only `body_MM_02`. The name detector accepts `_MM_XX` where `XX` is one or more ASCII decimal digits (leading zeros are significant), and preserves older unnumbered `_BM`/`_MM` support. Texture-prefix matching is case-insensitive, but matching does not guess across numbers or unrelated material slots.
-
-**How to use:** In BRRES **Materials**, select **Height To Normal**, then **Apply**. The **Detected _MM** list now includes numbered textures. A material whose primary source texture is `<prefix>_BM_<number>` will automatically propose `<prefix>_MM_<same-number>` when present. Otherwise, manually choose the correct **_MM Source** and **Apply**. External extracted `.mat` files still require the explicit **Copy _MM Bump To External .mat...** action; check Bump Mapping Preflight before copying.
-
-**Limit:** The importer currently reads a simplified first MDL0 texture reference, not every Wii GX/TEV stage. Some materials may not automatically identify a base `_BM_XX` even when it exists in the archive; numbered `_MM_XX` images are still detected and can be selected manually.
-
-## _MM grayscale bump mapping (Monster Hunter Tri) — v0.8.0-preview.1
-
-**Hotfix (v0.8.0-preview.2):** Fixed Unity Inspector CS0136 local variable name collision in the _MM dropdown. No changes to how height maps or external materials are processed.
-
-The native BRRES Materials Inspector exposes **TEX0 _MM_XX / Grayscale Bump Mapping**. Textures ending in numbered `_MM_01`, `_MM_02` (and legacy `_MM`) are treated as candidate grayscale bump maps; this does not prove the original GX/TEV material connection.
-
-| Mode | Behavior |
-|---|---|
-| **Off** (**default**) | Keep previous material behavior. Preserve decoded original TEX0 textures. |
-| **OriginalGrayscale** | Retain original grayscale `_MM` and assign to a shader's `_ParallaxMap` if supported. Approximate Unity parallax, not Wii bump reconstruction. |
-| **HeightToNormal** | Convert grayscale intensity gradients to a linear tangent-space normal-map sub-asset, attach to `_BumpMap` (Standard / URP Lit) or `_NormalMap` (HDRP Lit) if supported, and generate mesh tangents for normal-mapped meshes with UVs. |
-
-**Options:** Strength (0–8, default 2) and **Invert Height**. Both are set on the BRRES importer's **Materials** tab; click **Apply** to regenerate material and normal-map sub-assets. When Bump Mode is Off, no new normal maps are created. The original `_MM` Texture2D always remains a separate unchanged TEX0 sub-asset when **Import TEX0 Textures** is enabled.
-
-**Per-material source selection:** The Inspector lists recognized `_MM` TEX0 texture names and provides an **_MM Source** dropdown for every MDL0 material: **Auto (strict name match)**, **None**, or a specific `_MM` texture. Auto matches `<stem>_BM_XX` to exactly `<stem>_MM_XX` (or legacy `<stem>_BM` to `<stem>_MM`) when the material's primary texture name or material name actually follows the `_BM` naming convention. It will **never** apply a random `_MM` texture to every material simply because only one exists. The material index sub-asset records the candidate, chosen texture, original Texture2D, generated normal map and status. External `.mat` overrides still take precedence and are not automatically modified. If you have extracted materials (such as `em003/Materials/*.mat`), first click **Apply**, then **Copy _MM Bump To External .mat...** and confirm the edit. Only selected `.mat` assets are changed; `Undo.RecordObject` makes the action undoable.
-
-**Sample test:** Open `Assets/10/em003/em003.brres` → **Materials**. If this file contains a recognized `_MM` TEX0, select **Height To Normal**, Strength `2`, Invert Height off, choose the correct `_MM` source for each relevant MDL0 material, and click Apply. Inspect the generated Material and Normal Map sub-assets, and visually compare with the original Wii rendering in Dolphin. If the brightness/relief direction appears reversed, toggle Invert Height; compare lower Strength values to avoid excessive detail.
-
-**Limitations:** The BRRES importer currently reads only a simplified MDL0 primary texture link, not the TEV stage graph. No automatic proof that any particular `_MM` is wired to the relevant material exists. Tangent-space normal mapping is an *approximation* of Wii bump mapping. Custom shaders may not have supported properties. Unity Editor compilation, source/slot matching on `em003.brres`, normal-map preview, and correct TEV equivalence **have not yet been verified**.
-
-## FBX-style Materials tab — v0.7.0-preview.1
-
-The BRRES/MDL0 `ScriptedImporter` Inspector now includes **Model / Rig / Animations / Materials** tabs, with working per-material controls.
-
-On **Materials**, choose **Import Materials** (enabled by default) and optionally select a **Generated Material Shader**. The importer uses an appropriate built-in Standard/URP/HDRP Lit shader by default and assigns decoded TEX0 textures when available. The source format's complete Nintendo TEV shading is **not** reproduced.
-
-Each source MDL0 material is listed with its source name, model/slot indexes, referenced source texture, its generated Material and an **External Material** field. Assign an existing `.mat` asset to replace the Material used by that slot's `MeshRenderer` or `SkinnedMeshRenderer`, then click **Apply**.
-
-**Extract Materials...** opens a folder picker. Choose a folder **inside the current project's `Assets` folder**; Bress2Unity copies all generated materials into new editable `.mat` files, sets them as external overrides, and reimports the BRRES. Names include the model and material slot index, so duplicate MDL0 names do not collide. Use **Clear Overrides** and **Apply** to restore generated materials. Shader/texture data are copied, but extracted materials can still reference texture sub-assets from the original BRRES.
-
-The importer keeps existing stable material sub-asset identifiers, stores per-material override keys, and now creates a `BrresMaterialManifest` sub-asset containing slot metadata. Importer revision **5** triggers a fresh asset import.
-
-**Limitations:** Bress2Unity does not automatically translate advanced Wii TEV multi-stage shaders or PLT0 palettes. Editing extracted `.mat` files does not change the source `.brres`. This Materials tab has been committed and statically audited, but **Unity 2022.3 Editor compilation, extraction and renderer assignment still require testing**.
-
-## FBX-style Rig import settings — v0.6.0-preview.1
-
-Select an imported `.brres` or `.mdl0` asset in the Unity **Project** window. Bress2Unity now provides a custom Inspector with **Model**, **Rig**, and **Animations** tabs, similar to FBX Rig settings.
-
-On the **Rig** tab, choose **Animation Type**:
-
-| Option | Result |
-|---|---|
-| **Generic** (default) | Build a Unity Generic `Avatar` sub-asset for each MDL0 model; attach an `Animator` to that model's child GameObject; preserve exact Wii bone hierarchy and CHR0 transform paths |
-| **Humanoid** | Attempt to build a Unity Humanoid `Avatar` with editable source-bone mappings and attach an `Animator` only if the Avatar is valid |
-| **Legacy** | Add an `Animation` component and set embedded CHR0 AnimationClips to Legacy; no Avatar |
-| **None** | Import model and optional CHR0 clip sub-assets without generating an Animator, Animation component, or Avatar |
-
-**Avatar Definition:** **Create From This Model** or **Copy From Other Avatar**. The latter references an existing external Avatar asset; it must match the requested Generic/Humanoid type. Unity Avatar sub-assets appear when expanding the imported BRRES asset in the Project window. No native `ModelImporter` tab is used; this is an equivalent custom `ScriptedImporter` Inspector.
-
-**Generic Root Motion Bone:** `Y` by default, matching `0000.brres`. Clear this field to disable root motion when creating the Avatar. `Animator.applyRootMotion` defaults to off so existing CHR0 movement behavior stays unchanged.
-
-**Humanoid mapping:** The Inspector provides editable bone names with defaults for the selected NW4R skeleton: `hip`→Hips, `waist`→Spine, `breast`→Chest, `neck`→Neck, `head`→Head, `L_harm`/`R_harm`→Upper Arms, `L_larm`/`R_larm`→Lower Arms, `L_hand`/`R_hand`→Hands, `L_hleg`/`R_hleg`→Upper Legs, `L_lleg`/`R_lleg`→Lower Legs, and `L_foot`/`R_foot`→Feet. Shoulder defaults are `L_collar` and `R_collar`.
-
-**Important:** Humanoid acceptance requires a human-compatible bone hierarchy, orientations and suitable T-pose; matching names alone is not enough. If Unity refuses the generated Humanoid Avatar, the model/animations still import and Unity issues a warning. CHR0 transform-property clips are **not automatically converted to humanoid muscle curves** and cannot be assumed to retarget like Unity-imported humanoid FBX clips. **Use Generic for reliable original CHR0 animations.**
-
-The `Animator` is attached to the imported **MDL0 model child**, not the outer BRRES container, so animation paths continue to match the previously generated CHR0 clips. If an imported BRRES contains multiple MDL0 models, each model gets its own Avatar/Animator.
-
-**To test:** Update the Git package, select `0000.brres`, choose **Rig → Generic → Create From This Model**, click **Apply**, then expand the BRRES and inspect its generated Avatar and model's Animator. After that, try **Humanoid** and check the Console for `Avatar.isValid` diagnostics. **Unity Editor compilation and real Avatar validation have not yet been performed for this update.**
-
-## Automatic MDL0 face winding correction (v0.5.0-preview.1)
-
-Bress2Unity now **detects reversed triangle faces separately for each mesh**, by comparing its geometric face direction against its authored vertex normals. This fixes imported `0000.brres` faces without reversing correctly oriented models such as `axe001.brres`.
-
-After updating the package, right-click `0000.brres` and choose **Reimport**. The importer version was raised to 3 to trigger the new geometry processing. The `Reverse Face Winding` checkbox in the BRRES import Inspector is an **optional manual override**, normally left unchecked. If corrected faces are still visually wrong for a particular model, toggle it and reimport; verify from both inside and outside with a standard back-face-culling material.
-
-Independent reference check: `0000.glb` has 26 meshes / 9,506 triangles, with all 26 meshes showing overwhelmingly opposing geometric and authored normals; `axe001.glb` has seven meshes / 1,470 triangles, all consistently aligned. The automatic-correction rule distinguishes both references without a file-specific exception. This is format-level validation; the modified Unity importer still requires an Editor/Scene visual test.
-
-**MOT/GNTA has been removed from the installed Unity package.** The earlier experimental implementation is kept only in Git history and the [archived MOT branch](https://github.com/MusafirEx/Bress2Unity/tree/archive/mot-experimental-v0.4.0-preview.2).
-
-## Embedded CHR0 animations inside BRRES (v0.3.0-preview.1)
-
-**Supported archive layouts:** `MDL0` only; `MDL0 + one or many CHR0`; or `CHR0` only (no model). The BRRES reader discovers every `CHR0` resource rather than assuming one animation per archive.
-
-When you drag a BRRES into Unity's `Assets` folder, the importer creates `AnimationClip` **sub-assets** for each supported embedded CHR0 (NW4R CHR0 v5). Expand the imported BRRES in the Project window to see its clips. A BRRES containing a model will try to map CHR0 bones to its imported skeleton by name. For BRRES files containing several models, it selects the model with the most matching bone names.
-
-**Animation-only BRRES** (for example, `mot_em001.brres`) now imports without the previous `No MDL0 resource found` error. Because it contains no skeleton hierarchy, clips are generated with **generic one-level bone paths by default**. They are visible, but they might not animate your actual model correctly until rebound.
-
-### Export correctly bound clips for a separate model
-
-1. Import both the animation BRRES and a compatible model into Unity.
-2. Put a model instance into the Unity **Hierarchy**.
-3. Select the animation BRRES in the Project window.
-4. Open **Tools → MH → CHR0 from BRRES...**.
-5. Assign the desired **Model root (Hierarchy)** to the model containing the correct bone tree.
-6. Click **Analyze BRRES** to see every CHR0 and its matched bone count.
-7. Click **Generate .anim files** to write native clips to `Assets/CHR0Animations` (configurable).
-
-The converter reuses the existing CHR0 v5 decoder, including I4/I6/I12/L1/L2/L4 data decoding and existing position/rotation/scale logic.
-
-**Importer Inspector settings:** `Import Animations`, `Animation Rig` (optional prefab asset when model is in a different BRRES), `Animation FPS`, `Animation Axis`, and `Animation Loop`. The Inspector rig asset can be used for automatic CHR0 binding; a **scene hierarchy model** can be assigned in the separate Editor window.
-
-### Shared strings and format limitations
-
-NW4R BRRES may store CHR0 bone names in its **shared string pool**, beyond the CHR0 resource's declared byte length. The importer keeps the source archive's trailing bytes available so those strings can resolve. Data parsing is bounds-checked.
-
-Only **CHR0 v5** is supported by the CHR0 decoder. Other **BRRES animation formats** such as SRT0, PAT0 and VIS0 are not converted by this feature. MOT/GNTA is not supported by this UPM package. Animation-only files with no model cannot guarantee full bone paths without a rig.
-
-
-## Install with Unity Package Manager (UPM)
-
-**Main BRRES / MDL0 / CHR0 package** — installs from the `main` branch at the exact folder containing `package.json`.
-
-1. Install [Git for Windows](https://git-scm.com/download/win) (or Git for your OS) and make sure `git` is available on `PATH`.
-2. In Unity 2022.3, open **Window → Package Manager → + → Add package from git URL...**
-3. Copy and paste this **Git URL**, not the repository's web/browser URL:
+**Recommended: main BRRES / MDL0 / CHR0 package.** In Unity, open **Window → Package Manager → + → Add package from git URL...** and paste this exact address:
 
 ```text
 https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-to-unity#main
 ```
 
-4. Select **Add**. The installed package ID is `com.musafirex.chr0-to-unity`.
+The Git URL above is **for Unity Package Manager, not a web page to open in the browser**. You must have [Git](https://git-scm.com/downloads) installed and accessible on `PATH`.
 
-For projects managed directly through `Packages/manifest.json`, add the dependency to the existing `dependencies` object:
+**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.4`
+
+Alternatively, add this entry **inside the existing `dependencies` object** in your Unity project's `Packages/manifest.json`:
 
 ```json
 "com.musafirex.chr0-to-unity": "https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-to-unity#main"
 ```
 
-The URL uses `?path=/Packages/com.musafirex.chr0-to-unity` because the Unity package is in a repository **subdirectory**, and the `#main` revision must come **after** the path. Do not omit `?path=`, which would make UPM look for `package.json` at the repository root.
+> **Why the subfolder?** The repository contains multiple Unity packages. The main package's `package.json` is at `Packages/com.musafirex.chr0-to-unity/package.json`, **not** the repository root. Keep `?path=/Packages/com.musafirex.chr0-to-unity` before `#main`. Cloning the GitHub repository page URL alone will not install the right package.
+>
+> **Already installed?** Update the existing Git dependency rather than adding a second copy. Unity may keep the previously resolved commit in `packages-lock.json`; use Package Manager's **Update** action or re-add the Git URL if necessary.
 
-For the separately maintained, optional experimental MOT/GNTA tool, use [Experimental/MOTUnity](https://github.com/MusafirEx/Bress2Unity/tree/main/Experimental/MOTUnity) and its own Git URL; MOT is **not** part of the main package.
+**Package resources:** [UPM package folder](Packages/com.musafirex.chr0-to-unity) · [Package README](Packages/com.musafirex.chr0-to-unity/README.md) · [Changelog](Packages/com.musafirex.chr0-to-unity/CHANGELOG.md) · [BRRES technical notes](Packages/com.musafirex.chr0-to-unity/BRRES_IMPORTER_BETA.md)
 
-**Upgrade notes:** If the same package is already installed under the previous Git URL without `#main`, replace the dependency rather than adding a duplicate. Refresh/Update the Git dependency as needed because Unity records its resolved commit in `packages-lock.json`. If you previously copied `CHR0ToUnityAnimConverter.cs` into `Assets`, remove the duplicate standalone script to avoid class conflicts.
+## Features
 
-## Native model import (BRRES/MDL0 → Unity)
+| Feature | What it does |
+| --- | --- |
+| **Model** | Imports supported BRRES and MDL0 meshes, skeleton hierarchy, UVs and skin weights |
+| **Textures** | Decodes common Wii TEX0 formats; paletted TEX0 / PLT0 support remains limited |
+| **Rig** | Options for None, Legacy, Generic or experimental Humanoid Avatar generation |
+| **Animations** | Imports supported CHR0 v5 clips embedded in BRRES, including animation-only archives |
+| **Materials** | Generates basic Standard/URP/HDRP Lit materials; supports external `.mat` assignments and extraction |
+| **Grayscale bump** | Optional `_BM_01 ↔ _MM_01` matching and conversion of `_MM_XX` height textures into normal maps |
 
-```text
-model.brres / model.mdl0
-      │  Drag into Unity Assets/
-      ▼
-Built-in Unity ScriptedImporter (managed C#)
-      │
-      ├── Unity Mesh(es) + Renderer(s)
-      ├── Bone hierarchy and experimental skin weights
-      ├── Embedded TEX0 images → Texture2D
-      └── Preview materials
-      │
-      ▼
-Place imported model asset into scene
-```
+All BRRES importer settings are available by selecting a `.brres` or `.mdl0` asset and using its **Model / Rig / Animations / Materials** Inspector tabs.
 
-Select the BRRES/MDL0 asset in the Project window to adjust **Flip X**, **Flip UV**, **unitsToMeters**, **Import Textures** or **Import Skinning** options.
+### Quick start — BRRES model
 
-**Beta limitations:** paletted PLT0 textures, exact GX/TEV shaders, some uncommon vertex modes and some skinning scenarios are not fully supported. See [BRRES importer technical notes](Packages/com.musafirex.chr0-to-unity/BRRES_IMPORTER_BETA.md).
+1. Add the UPM package above to your Unity project.
+2. Copy a source `model.brres` (or supported `model.mdl0`) into `Assets/`.
+3. Select it in the **Project** window. In **Model**, configure scale, UVs, textures and skinning.
+4. In **Rig**, start with **Generic** for original Wii skeletons, then click **Apply**.
+5. Expand the imported asset for generated meshes, textures, materials, Avatar and clips. Drag the model into the Scene to inspect it.
 
-## Original model workflow (still supported)
+### Quick start — CHR0 animations
 
-If the native importer cannot read your model, you can still use [nintoolbox](https://github.com/quatric/nintoolbox):
+- **Embedded CHR0:** Expand a model BRRES in Project to see generated `AnimationClip` sub-assets.
+- **Animation-only BRRES:** The clips can import without MDL0, but may need binding to a separate rig.
+- **Separate model/animation files:** Place the model in a Scene and use **Tools → MH → CHR0 from BRRES...**; select the appropriate model hierarchy, analyze the clips, then export `.anim` files.
 
-```text
-BRRES / MDL0 → nintoolbox / wmdlt DECODE → GLB → glTFast → Unity
-```
+Only supported **CHR0 v5** animations are decoded by the current importer; SRT0, PAT0 and VIS0 are not automatically converted.
 
-Example commands:
+### Quick start — Monster Hunter Tri `_MM_XX` textures
 
-```powershell
-wmdlt DECODE character.brres --dest character.glb
-wmdlt DECODE character.mdl0 --dest character.glb
-```
+Some textures use numbered pairs such as `body_BM_01` (base) and `body_MM_01` (grayscale bump). The importer matches **the same prefix and numeric suffix only**; it will not pair `_BM_01` with `_MM_02`.
 
-See [nintoolbox commands](https://github.com/quatric/nintoolbox/blob/master/docs/COMMANDS.md). nintoolbox and glTFast are **not required** for the new native importer when it supports your model.
+Select the BRRES → **Materials** → set **Height To Normal** (optional) → choose the correct `_MM Source` if not automatically identified → click **Apply**. If you previously extracted external `.mat` assets, check **Bump Mapping Preflight**, then use **Copy _MM Bump To External .mat...** to update those assets explicitly.
 
-## CHR0 animation import (existing stable tool)
+This conversion approximates bump mapping in Unity; it is **not** a faithful emulation of the Wii GX/TEV shader.
 
-```text
-CHR0 animation files → Tools > MH > CHR0 to Unity .anim → Unity AnimationClips
-```
+## Optional: experimental MOT / GNTA Workbench
 
-1. Select the root of your imported rigged character in the Unity **Hierarchy**.
-2. Open **Tools → MH → CHR0 to Unity .anim**.
-3. Choose a folder with extracted CHR0 files (extensions optional).
-4. Choose FPS and coordinate conversion settings.
-5. Click **Analyze CHR0** and **Generate .anim files**.
-6. Assign the clips to an Animator Controller.
-
-The model-importer and CHR0 converter are separate components in **one package**.
-
-## Source structure
+The MOT decoder is **not included** in the main BRRES/CHR0 UPM package. If you want to test MOT animation decoding separately, install this **additional experimental package**:
 
 ```text
-Packages/
-└── com.musafirex.chr0-to-unity/
-    ├── package.json
-    ├── README.md
-    ├── BRRES_IMPORTER_BETA.md
-    ├── CHANGELOG.md
-    ├── LICENSE.md
-    └── Editor/
-        ├── CHR0ToUnityAnimConverter.cs
-        ├── MusafirEx.CHR0ToUnity.Editor.asmdef
-        └── BRRES/
-            ├── BrresNativeImporter.cs
-            └── BrresMdl0Reader.cs
-Experimental/MOT/
-    MotGntaUnityConverter.cs  # Archived only; excluded from UPM
+https://github.com/MusafirEx/Bress2Unity.git?path=/Experimental/MOTUnity#main
 ```
 
-## Validation
+**Package ID:** `com.musafirex.mot-workbench` · [MOT Workbench README](Experimental/MOTUnity/README.md). Its 2-component rotation decoding is still experimental; previewed motion must be verified.
 
-The first BRRES reader was checked with `axe001.brres` against a previously converted `axe001.glb`: **7 meshes, 1,470 triangles** (all seven polygon triangle counts match), **3 TEX0 textures**. This is format-level validation, **not a completed Unity Editor runtime/compilation test**.
+## Troubleshooting
 
-## License and acknowledgements
+- **UPM says `package.json` is missing:** Use the complete Git URL above, including `?path=...` **before** `#main`. Do not install the repository root as a package.
+- **Git executable not found:** Install Git and restart Unity so the Editor picks up the updated `PATH`.
+- **Old code after an update:** Confirm the resolved Git revision and use **Update** in Package Manager; reimport the affected `.brres` file if necessary.
+- **Duplicate C# classes:** Remove any old manually copied `Assets/.../CHR0ToUnityAnimConverter.cs` if you previously installed the standalone converter.
+- **Missing `_MM_XX` or no bump copied:** Enable texture import, verify the material's `_MM Source`, click **Apply**, and check the **Bump Mapping Preflight** counts.
+- **Unexpected mesh, bone or shading results:** Check the [technical limitations](Packages/com.musafirex.chr0-to-unity/BRRES_IMPORTER_BETA.md) and compare against the game or a separate BRRES reader. Full TEV effects, all paletted formats and all skinning arrangements are not guaranteed.
 
-[MIT License](LICENSE). Package by [Musafir Ex](https://github.com/MusafirEx). nintoolbox is an independent external project; no nintoolbox binary/source or copyrighted game assets are bundled with the importer. Consult original asset owners' rights before redistributing models.
+## Compatibility, source and license
+
+- **Unity version:** 2022.3 LTS, Editor-only package.
+- **Main package:** `Packages/com.musafirex.chr0-to-unity`.
+- **Experimental MOT package:** `Experimental/MOTUnity`, installed separately.
+- **Alternative conversion workflow:** [nintoolbox](https://github.com/quatric/nintoolbox) BRRES → GLB → Unity, if a source asset is not supported by the native importer.
+- **License:** [MIT](LICENSE).
+- **Preserved Unity-tested baseline:** [v0.3.0-preview.1 milestone](https://github.com/MusafirEx/Bress2Unity/tree/milestone/v0.3.0-preview.1-unity-tested).
+
+This is a community-developed tool. Support for some model variants, materials, shaders, rigs and advanced animations is experimental; no guarantee of 1:1 rendering or animation fidelity is implied.
