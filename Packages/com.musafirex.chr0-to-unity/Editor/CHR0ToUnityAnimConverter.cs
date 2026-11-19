@@ -209,7 +209,7 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
     }
 
     internal static AnimationClip CreateEmbeddedAnimation(byte[] bytes, string name, GameObject root,
-        int fps, int axis, bool respectLoop, out int matched)
+        int fps, int axis, bool respectLoop, out int matched, float positionScale = 1f)
     {
         Chr0Clip decoded = DecodeChr0(bytes);
         var targets = new Dictionary<string, Transform>(StringComparer.Ordinal);
@@ -243,7 +243,7 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
                 if (targets.ContainsKey(bone.Name)) matched++;
             if (root != null && matched == 0)
                 throw new InvalidDataException("No CHR0 bone names match the selected model: " + name);
-            return CreateClip(name, decoded, targets, paths, fps, axis, respectLoop);
+            return CreateClip(name, decoded, targets, paths, fps, axis, respectLoop, positionScale);
         }
         finally
         {
@@ -253,8 +253,14 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
 
     private static AnimationClip CreateClip(string name, Chr0Clip source,
         Dictionary<string, Transform> targets, Dictionary<string, string> paths,
-        int fps, int axis, bool copyLoop)
+        int fps, int axis, bool copyLoop, float positionScale = 1f)
     {
+        // The native BRRES importer scales mesh positions and bone rest-pose
+        // translations. Embedded CHR0 position keys must use the same scale.
+        // The standalone CHR0 exporter and externally selected rigs retain
+        // positionScale = 1 to preserve established animation behavior.
+        if (float.IsNaN(positionScale) || float.IsInfinity(positionScale) || positionScale <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(positionScale));
         var clip = new AnimationClip { name = name, legacy = false, frameRate = fps };
         int count = source.FrameCount;
         var bindings = new List<EditorCurveBinding>();
@@ -279,11 +285,15 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
                 float[] x = new float[count], y = new float[count], z = new float[count];
                 for (int f = 0; f < count; f++)
                 {
-                    float nativeX = bone.Value(6, f, bindPos.x);
-                    x[f] = axis == 0 ? -nativeX : nativeX;
-                    y[f] = bone.Value(7, f, bindPos.y);
-                    float nativeZ = bone.Value(8, f, bindPos.z);
-                    z[f] = axis == 1 ? -nativeZ : nativeZ;
+                    // Reverse the import scale for missing source channels,
+                    // then uniformly scale the decoded native translations.
+                    // This avoids multiplying the already scaled bind pose
+                    // twice on partially animated bones.
+                    float nativeX = bone.Value(6, f, bindPos.x / positionScale);
+                    x[f] = (axis == 0 ? -nativeX : nativeX) * positionScale;
+                    y[f] = bone.Value(7, f, bindPos.y / positionScale) * positionScale;
+                    float nativeZ = bone.Value(8, f, bindPos.z / positionScale);
+                    z[f] = (axis == 1 ? -nativeZ : nativeZ) * positionScale;
                 }
                 WriteCurve(bindings, curves, path, "m_LocalPosition.x", x, fps);
                 WriteCurve(bindings, curves, path, "m_LocalPosition.y", y, fps);
