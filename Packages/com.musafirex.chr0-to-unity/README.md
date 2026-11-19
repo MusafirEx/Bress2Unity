@@ -1,6 +1,6 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.8.0-preview.4 — Unity 2022.3 LTS, Editor-only**
+**Version 0.8.0-preview.5 — Unity 2022.3 LTS, Editor-only**
 
 This Unity package combines two Editor tools:
 
@@ -35,6 +35,16 @@ For the separately maintained, optional experimental MOT/GNTA tool, use [Experim
 
 **Upgrade notes:** If the same package is already installed under the previous Git URL without `#main`, replace the dependency rather than adding a duplicate. Refresh/Update the Git dependency as needed because Unity records its resolved commit in `packages-lock.json`. If you previously copied `CHR0ToUnityAnimConverter.cs` into `Assets`, remove the duplicate standalone script to avoid class conflicts.
 
+
+## EMD2Unity-style Model Scale — v0.8.0-preview.5
+
+The BRRES native importer uses the same uniform scale principle as EMD2Unity: imported vertex positions and bone/node translation values are multiplied by a **Scale** factor. Scale `1` preserves the source's dimensions. Scale `0.01` imports at one-hundredth of its source size. The prefab root remains at `(1,1,1)`; we do not apply scaling to the root Transform.
+
+**Where:** select a `.brres` or `.mdl0` asset in Unity, open the **Model** tab, set **Scale** and click **Apply**. The existing serialized field name `unitsToMeters` is intentionally retained to preserve values in existing `.brres.meta` files.
+
+**Animations:** CHR0 position keys from the same archive, bound to its imported MDL0 rig, are now scaled by the identical factor. Missing per-axis position tracks use the unscaled bind pose as their decoder fallback before applying the scale, avoiding double scaling. Bone rotation, local scale factors, and UVs remain unaffected. Standalone CHR0 tools and external-rig clips remain at their existing scale; animation-only files should be rebound to a matching rig before judging scale.
+
+The `ScriptedImporter` revision is now `8`; editor compilation and actual mesh/animation playback after the change need validation in Unity. Full Wii unit-to-meter equivalence is not established, so use the Scale setting to choose an appropriate size for your scene.
 
 ### External .mat bump diagnostics — v0.8.0-preview.3
 
