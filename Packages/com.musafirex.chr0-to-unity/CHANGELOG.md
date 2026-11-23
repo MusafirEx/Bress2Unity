@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0-preview.6] - 2026-11-24
+
+- Import supported TEX0 textures from BRRES archives without a model or animation. Expand the asset in the Project window to find its named textures.
+- Report individual TEX0 decoding failures and keep any textures that decoded successfully. If every texture fails, the import error includes the decoder messages.
+- Raise the BRRES importer revision to 9 so Unity retries previously failed archives after updating the package.
+
 ## [0.8.0-preview.5] - 2026-11-20
 
 - Align the BRRES **Model → Scale** control with EMD2Unity's model importer. Keep the serialized `unitsToMeters` field to preserve values in existing `.brres.meta` files; the Inspector now labels it **Scale** (default `1`).

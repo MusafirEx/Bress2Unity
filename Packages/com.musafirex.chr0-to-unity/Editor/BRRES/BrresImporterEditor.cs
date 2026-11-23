@@ -212,7 +212,7 @@ namespace MusafirEx.Brres
                 EditorGUILayout.HelpBox("No recognized _MM_XX textures were decoded (older _MM names are also supported). Verify Import TEX0 Textures and the BRRES source texture names.",MessageType.Info);
             if(manifest.entries==null || manifest.entries.Count==0)
             {
-                EditorGUILayout.HelpBox("No MDL0 materials found (this archive may contain CHR0 animations only).",MessageType.Info);
+                EditorGUILayout.HelpBox("This BRRES contains no MDL0 material slots.",MessageType.Info);
                 return;
             }
 

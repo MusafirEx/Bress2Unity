@@ -1,6 +1,8 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.8.0-preview.5 — Unity 2022.3 LTS, Editor-only**
+**Version 0.8.0-preview.6 — Unity 2022.3 LTS, Editor-only**
+
+Texture-only BRRES archives import their supported TEX0 images as named `Texture2D` sub-assets. Expand the BRRES in the Project window to use them in materials.
 
 This Unity package combines two Editor tools:
 

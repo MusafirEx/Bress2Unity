@@ -191,13 +191,11 @@ namespace MusafirEx.Brres
                 if(resource.Magic!="TEX0") continue;
                 try
                 {
+                    if (resource.Length < 0x24)
+                        throw new InvalidDataException("Truncated TEX0 header");
                     Texture2D texture=ReadTexture(resource.Offset,keepMmReadable && BrresBumpMapUtility.IsMm(resource.Name));
-                    if(texture!=null)
-                    {
-                        texture.name=resource.Name;
-                        output[resource.Name]=texture;
-                    }
-                    else warnings.Add("TEX0 " + resource.Name + ": unsupported format");
+                    texture.name=resource.Name;
+                    output[resource.Name]=texture;
                 }
                 catch(Exception ex){warnings.Add("TEX0 " + resource.Name + ": " + ex.Message);}
             }
@@ -215,7 +213,7 @@ namespace MusafirEx.Brres
         private Texture2D ReadTexture(int t,bool keepReadable)
         {
             int w=U16(t+0x1c),h=U16(t+0x1e),format=I32(t+0x20),rel=I32(t+0x10);
-            if(w<1||h<1||w>8192||h>8192||((long)w*h)>16777216 || rel<0) throw new InvalidDataException("Bad TEX0 texture dimensions or offset");
+            if(w<1||h<1||w>8192||h>8192||((long)w*h)>16777216 || rel<0x24) throw new InvalidDataException("Bad TEX0 texture dimensions or offset");
             // Nintendo GX texture tiles are 8x8 (I4), 8x4 (I8), 4x4 (16-bit), 4x4 RGBA8, 8x8 CMPR.
             int tw=4,th=4,bytesPerTile=32;
             if(format==0){tw=8;th=8;bytesPerTile=32;}
@@ -223,7 +221,9 @@ namespace MusafirEx.Brres
             else if(format==3||format==4||format==5){tw=4;th=4;bytesPerTile=32;}
             else if(format==6){tw=4;th=4;bytesPerTile=64;}
             else if(format==14){tw=8;th=8;bytesPerTile=32;}
-            else return null; // Palette indices (C4/C8/C14X2) require PLT0: not yet supported.
+            else if (format == 8 || format == 9 || format == 10)
+                throw new InvalidDataException("GX texture format " + format + " requires PLT0 palette decoding, which is not supported.");
+            else throw new InvalidDataException("Unsupported GX texture format " + format);
             int cols=(w+tw-1)/tw, rows=(h+th-1)/th;
             long expected=(long)cols*rows*bytesPerTile;
             int start=checked(t+rel);

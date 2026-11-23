@@ -4,7 +4,7 @@
 
 [![Unity 2022.3](https://img.shields.io/badge/Unity-2022.3%20LTS-222222)](https://unity.com/releases/editor/whats-new/2022.3)
 [![UPM Git package](https://img.shields.io/badge/UPM-Git%20package-blue)](https://docs.unity3d.com/2022.3/Documentation/Manual/upm-ui-giturl.html)
-[![Version](https://img.shields.io/badge/version-0.8.0--preview.5-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
+[![Version](https://img.shields.io/badge/version-0.8.0--preview.6-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
 
 Import Nintendo Wii **BRRES / MDL0** models, their embedded **TEX0** textures, skeletons, basic materials, and **CHR0** animations directly into Unity. Bress2Unity is an **Editor-only preview** package: some Wii formats and exact GX/TEV rendering are not yet supported.
 
@@ -18,7 +18,7 @@ https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-t
 
 The Git URL above is **for Unity Package Manager, not a web page to open in the browser**. You must have [Git](https://git-scm.com/downloads) installed and accessible on `PATH`.
 
-**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.5`
+**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.6`
 
 Alternatively, add this entry **inside the existing `dependencies` object** in your Unity project's `Packages/manifest.json`:
 
@@ -37,7 +37,7 @@ Alternatively, add this entry **inside the existing `dependencies` object** in y
 | Feature | What it does |
 | --- | --- |
 | **Model** | Imports supported BRRES and MDL0 meshes, skeleton hierarchy, UVs and skin weights; Model tab offers EMD2Unity-style **Scale** |
-| **Textures** | Decodes common Wii TEX0 formats; paletted TEX0 / PLT0 support remains limited |
+| **Textures** | Imports common TEX0 formats from model and texture-only BRRES archives. Expand the asset to find the textures. Palette-indexed TEX0 requires a PLT0 decoder and is currently unsupported. |
 | **Rig** | Options for None, Legacy, Generic or experimental Humanoid Avatar generation |
 | **Animations** | Imports supported CHR0 v5 clips embedded in BRRES, including animation-only archives |
 | **Materials** | Generates basic Standard/URP/HDRP Lit materials; supports external `.mat` assignments and extraction |

@@ -16,7 +16,7 @@ namespace MusafirEx.Brres
     public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
     public enum BrresBumpMode { Off=0, OriginalGrayscale=1, HeightToNormal=2 }
 
-    [ScriptedImporter(8, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(9, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -110,8 +110,15 @@ namespace MusafirEx.Brres
                 var records = parser.FindResources();
                 var modelResources = records.FindAll(r => r.Magic == "MDL0");
                 var chr0Resources = records.FindAll(r => r.Magic == "CHR0");
-                if(modelResources.Count == 0 && chr0Resources.Count == 0)
-                    throw new InvalidDataException("No MDL0 or CHR0 resource found inside BRRES archive");
+                bool textureOnly = modelResources.Count == 0 && chr0Resources.Count == 0;
+                if (textureOnly && !records.Exists(r => r.Magic == "TEX0"))
+                    throw new InvalidDataException("BRRES contains no MDL0 model, CHR0 animation or TEX0 texture.");
+
+                var textures = importTextures
+                    ? parser.LoadTextures(records,warnings,bumpMode==BrresBumpMode.HeightToNormal)
+                    : new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
+                if (textureOnly && importTextures && textures.Count == 0)
+                    throw new InvalidDataException("Could not decode any TEX0 texture in this BRRES.\n" + string.Join("\n", warnings));
 
                 var root = new GameObject(Path.GetFileNameWithoutExtension(context.assetPath));
                 context.AddObjectToAsset("root",root);
@@ -123,9 +130,6 @@ namespace MusafirEx.Brres
                 materialManifest.name=root.name+"_Materials";
                 context.AddObjectToAsset("brres_materials",materialManifest);
 
-                var textures = importTextures
-                    ? parser.LoadTextures(records,warnings,bumpMode==BrresBumpMode.HeightToNormal)
-                    : new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
                 var bumpNormals=new Dictionary<string,Texture2D>(StringComparer.OrdinalIgnoreCase);
                 foreach(var kv in textures)
                 {
@@ -151,6 +155,14 @@ namespace MusafirEx.Brres
                 {
                     kv.Value.name=kv.Key;
                     context.AddObjectToAsset("tex_"+(texIndex++)+"_"+Safe(kv.Key),kv.Value);
+                }
+                if (textureOnly)
+                {
+                    if (!importTextures)
+                        warnings.Add("This BRRES contains textures. Enable Import TEX0 Textures in the Model tab to import them.");
+                    foreach (string warning in warnings)
+                        context.LogImportWarning(warning);
+                    return;
                 }
                 if(importMaterials && materialShaderOverride!=null)
                 {
