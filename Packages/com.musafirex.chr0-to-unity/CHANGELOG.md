@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0-preview.8] - 2026-11-24
+
+- Fix Unity Refresh-loop reimport errors for external CHR0 rigs (reported for `em001.brres`, `em010.brres`, `em027.brres`). Stop calling `AssetImporter.GetAtPath` inside `OnImportAsset` for the external BRRES model.
+- Add serialized **External Rig Position Scale** in the Animations tab, default `1`. Set this to the linked model's **Model → Scale** when importing separate animation BRRES files. Avoid querying external importers mid-refresh.
+- Preserve opt-in first-frame rest-pose alignment, automatic Animator-child binding, source-absolute mode, and external model asset import dependency. Bump ScriptedImporter revision to 11.
+- GitHub source fix; refresh-loop validation in Unity requires updating to this commit and reimporting impacted assets.
+
 ## [0.8.0-preview.7] - 2026-11-24
 
 - Fix CHR0-only BRRES external-rig binding when an imported BRRES prefab wraps a single Animator on its nested MDL0 child: generate curve paths relative to that Animator, avoiding an extra `em028/` path prefix.

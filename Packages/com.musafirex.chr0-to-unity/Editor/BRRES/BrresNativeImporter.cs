@@ -17,7 +17,7 @@ namespace MusafirEx.Brres
     public enum BrresBumpMode { Off=0, OriginalGrayscale=1, HeightToNormal=2 }
     public enum BrresChr0TranslationMode { SourceAbsolute=0, AlignFirstFrameToRestPose=1 }
 
-    [ScriptedImporter(10, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(11, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -87,6 +87,9 @@ namespace MusafirEx.Brres
         public bool importAnimations = true;
         [Tooltip("Animation rig for separate, animation-only BRRES. Assign a model prefab asset for correctly mapped bones.")]
         public GameObject animationRig;
+        [Min(0.000001f)]
+        [Tooltip("Translation scale for CHR0-only archives bound to an external rig. Set to the external model's Model > Scale (e.g. 0.01). Does not change rotation, local scale or the model's Transform scale.")]
+        public float externalRigTranslationScale = 1f;
         [Tooltip("Frame rate for embedded CHR0 AnimationClips.")]
         public int animationFps = 60;
         [Tooltip("Coordinate basis of the skeleton, 0=Flip X, 1=Flip Z, 2=None.")]
@@ -438,19 +441,18 @@ namespace MusafirEx.Brres
                             string unique = clipName;
                             for(int suffix=1;!usedNames.Add(unique);suffix++) unique=clipName+"_"+suffix;
                             int mapped;
-                            // Only embedded CHR0 bound to a model imported from THIS BRRES
-                            // inherits its model scale. An external rig may use a
-                            // different import scale, so preserve its old behavior.
-                            float clipPositionScale = rig!=null && modelRoots.Contains(rig)
-                                ? effectiveScale : 1f;
-                            if(rig!=null && !modelRoots.Contains(rig))
-                            {
-                                string rigPath=AssetDatabase.GetAssetPath(rig);
-                                var externalImporter=AssetImporter.GetAtPath(rigPath) as BrresNativeImporter;
-                                if(externalImporter!=null && !float.IsNaN(externalImporter.unitsToMeters) &&
-                                   !float.IsInfinity(externalImporter.unitsToMeters))
-                                    clipPositionScale=Mathf.Clamp(externalImporter.unitsToMeters,0.000001f,10000f);
-                            }
+                            // Never call AssetImporter.GetAtPath for a linked rig in
+                            // OnImportAsset: the referenced BRRES may be queued for
+                            // reimport in the same refresh, causing recursive loading.
+                            // Instead keep the external scale explicitly serialized
+                            // on this animation importer (safe in import workers).
+                            float clipPositionScale = effectiveScale;
+                            if(rig != null && !modelRoots.Contains(rig))
+                                clipPositionScale = float.IsNaN(externalRigTranslationScale) ||
+                                    float.IsInfinity(externalRigTranslationScale)
+                                    ? 1f : Mathf.Clamp(externalRigTranslationScale,0.000001f,10000f);
+                            else if(rig == null)
+                                clipPositionScale = 1f;
                             bool alignToRest=animationTranslationMode==BrresChr0TranslationMode.AlignFirstFrameToRestPose;
                             var clip = CHR0ToUnityAnimConverter.CreateEmbeddedAnimation(raw,unique,rig,
                                 Mathf.Clamp(animationFps,1,120),Mathf.Clamp(animationAxis,0,2),animationLoop,out mapped,

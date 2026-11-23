@@ -497,6 +497,12 @@ namespace MusafirEx.Brres
             EditorGUILayout.LabelField("CHR0 Import",EditorStyles.boldLabel);
             Prop("importAnimations","Import Embedded CHR0");
             Prop("animationRig","External Animation Rig");
+            SerializedProperty rigReference = serializedObject.FindProperty("animationRig");
+            if(rigReference != null && rigReference.objectReferenceValue != null)
+            {
+                Prop("externalRigTranslationScale","External Rig Position Scale");
+                EditorGUILayout.HelpBox("Set this to the linked model BRRES's Model > Scale. Use 1 for a model imported at its native size. The scale is stored here to avoid loading the model's importer during Unity's AssetDatabase Refresh loop.",MessageType.Info);
+            }
             Prop("animationFps","Sample Frame Rate");
             Prop("animationAxis","Axis Conversion (0=X, 1=Z, 2=None)");
             Prop("animationLoop","Copy Source Loop Settings");
