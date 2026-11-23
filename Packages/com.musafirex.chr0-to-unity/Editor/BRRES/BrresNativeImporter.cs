@@ -15,8 +15,9 @@ namespace MusafirEx.Brres
     public enum BrresRigType { None=0, Legacy=1, Generic=2, Humanoid=3 }
     public enum BrresAvatarDefinition { CreateFromThisModel=0, CopyFromOtherAvatar=1 }
     public enum BrresBumpMode { Off=0, OriginalGrayscale=1, HeightToNormal=2 }
+    public enum BrresChr0TranslationMode { SourceAbsolute=0, AlignFirstFrameToRestPose=1 }
 
-    [ScriptedImporter(9, new[] { "brres", "mdl0" })]
+    [ScriptedImporter(10, new[] { "brres", "mdl0" })]
     public sealed class BrresNativeImporter : ScriptedImporter
     {
         [Tooltip("Convert Wii right-handed X into Unity left-handed X.")]
@@ -92,6 +93,10 @@ namespace MusafirEx.Brres
         public int animationAxis = 0;
         [Tooltip("Respect source CHR0 looping flags.")]
         public bool animationLoop = true;
+        [Tooltip("Source Absolute keeps CHR0 translations unchanged. Align First Frame To Rest Pose shifts selected bone translation curves so frame 0 matches the external model rig. Opt in only for mismatched animation-only archives.")]
+        public BrresChr0TranslationMode animationTranslationMode = BrresChr0TranslationMode.SourceAbsolute;
+        [Tooltip("Comma-separated bone names to align (case-insensitive). Default AR-00, AR-01 for Monster Hunter Tri. Leave blank to align all translated bones when the mode is enabled.")]
+        public string animationRestPoseBones = "AR-00, AR-01";
 
         public override void OnImportAsset(AssetImportContext context)
         {
@@ -404,6 +409,14 @@ namespace MusafirEx.Brres
                 }
                 if(importAnimations)
                 {
+                    // An external BRRES rig's rest pose and scale affect the
+                    // generated clips, so changes to that rig must reimport them.
+                    if(animationRig!=null)
+                    {
+                        string rigAssetPath=AssetDatabase.GetAssetPath(animationRig);
+                        if(!string.IsNullOrEmpty(rigAssetPath) && rigAssetPath!=context.assetPath)
+                            context.DependsOnSourceAsset(rigAssetPath);
+                    }
                     var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     int clipSerial = 0;
                     foreach(var resource in chr0Resources)
@@ -430,9 +443,18 @@ namespace MusafirEx.Brres
                             // different import scale, so preserve its old behavior.
                             float clipPositionScale = rig!=null && modelRoots.Contains(rig)
                                 ? effectiveScale : 1f;
+                            if(rig!=null && !modelRoots.Contains(rig))
+                            {
+                                string rigPath=AssetDatabase.GetAssetPath(rig);
+                                var externalImporter=AssetImporter.GetAtPath(rigPath) as BrresNativeImporter;
+                                if(externalImporter!=null && !float.IsNaN(externalImporter.unitsToMeters) &&
+                                   !float.IsInfinity(externalImporter.unitsToMeters))
+                                    clipPositionScale=Mathf.Clamp(externalImporter.unitsToMeters,0.000001f,10000f);
+                            }
+                            bool alignToRest=animationTranslationMode==BrresChr0TranslationMode.AlignFirstFrameToRestPose;
                             var clip = CHR0ToUnityAnimConverter.CreateEmbeddedAnimation(raw,unique,rig,
                                 Mathf.Clamp(animationFps,1,120),Mathf.Clamp(animationAxis,0,2),animationLoop,out mapped,
-                                clipPositionScale);
+                                clipPositionScale,alignToRest,animationRestPoseBones);
                             // Legacy Animation requires legacy clips; Mecanim Generic and
                             // Humanoid use non-legacy clips as before.
                             if(rigType==BrresRigType.Legacy)

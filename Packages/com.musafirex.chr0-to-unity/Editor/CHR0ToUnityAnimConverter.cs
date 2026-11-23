@@ -190,6 +190,21 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
     // Reuse the tested CHR0 decoder for clips discovered inside BRRES archives.
     // The binary buffer may include the trailing BRRES shared string pool.
     // Do not copy only CHR0's declared size: string pointers can reach outside it.
+    // Imported BRRES prefabs contain an outer archive GameObject and an inner
+    // MDL0 GameObject with the Animator. Curves must be relative to the latter.
+    // Preserve explicit Animator roots, and keep the old behavior for rigs with
+    // zero or multiple Animators so ambiguous hierarchies are not guessed.
+    internal static GameObject ResolveAnimationRoot(GameObject assigned)
+    {
+        if (assigned == null || assigned.GetComponent<Animator>() != null ||
+            assigned.GetComponent<Animation>() != null) return assigned;
+        Animator[] animators = assigned.GetComponentsInChildren<Animator>(true);
+        if (animators.Length == 1) return animators[0].gameObject;
+        Animation[] legacy = assigned.GetComponentsInChildren<Animation>(true);
+        if (legacy.Length == 1) return legacy[0].gameObject;
+        return assigned;
+    }
+
     internal static string[] GetEmbeddedBoneNames(byte[] bytes)
     {
         Chr0Clip decoded = DecodeChr0(bytes);
@@ -200,6 +215,7 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
 
     internal static int CountEmbeddedBoneMatches(byte[] bytes, GameObject root)
     {
+        root = ResolveAnimationRoot(root);
         if (root == null) return 0;
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (Transform t in root.GetComponentsInChildren<Transform>(true)) names.Add(t.name);
@@ -209,9 +225,11 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
     }
 
     internal static AnimationClip CreateEmbeddedAnimation(byte[] bytes, string name, GameObject root,
-        int fps, int axis, bool respectLoop, out int matched, float positionScale = 1f)
+        int fps, int axis, bool respectLoop, out int matched, float positionScale = 1f,
+        bool rebaseTranslation = false, string rebaseBoneNames = null)
     {
         Chr0Clip decoded = DecodeChr0(bytes);
+        root = ResolveAnimationRoot(root);
         var targets = new Dictionary<string, Transform>(StringComparer.Ordinal);
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
         GameObject fallback = null;
@@ -243,7 +261,8 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
                 if (targets.ContainsKey(bone.Name)) matched++;
             if (root != null && matched == 0)
                 throw new InvalidDataException("No CHR0 bone names match the selected model: " + name);
-            return CreateClip(name, decoded, targets, paths, fps, axis, respectLoop, positionScale);
+            return CreateClip(name, decoded, targets, paths, fps, axis, respectLoop,
+                positionScale, rebaseTranslation && root != null, rebaseBoneNames);
         }
         finally
         {
@@ -253,7 +272,8 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
 
     private static AnimationClip CreateClip(string name, Chr0Clip source,
         Dictionary<string, Transform> targets, Dictionary<string, string> paths,
-        int fps, int axis, bool copyLoop, float positionScale = 1f)
+        int fps, int axis, bool copyLoop, float positionScale = 1f,
+        bool rebaseTranslation = false, string rebaseBoneNames = null)
     {
         // The native BRRES importer scales mesh positions and bone rest-pose
         // translations. Embedded CHR0 position keys must use the same scale.
@@ -265,13 +285,21 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
         int count = source.FrameCount;
         var bindings = new List<EditorCurveBinding>();
         var curves = new List<AnimationCurve>();
+        // Empty filter means all matched bones. Otherwise only explicitly named
+        // bones are corrected (e.g. AR-00, AR-01), leaving locomotion intact.
+        var rebaseBones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(rebaseBoneNames))
+            foreach (string namePart in rebaseBoneNames.Split(new[] { ',', ';', '\n', '\r' },
+                         StringSplitOptions.RemoveEmptyEntries))
+                rebaseBones.Add(namePart.Trim());
         for (int n = 0; n < source.Bones.Count; n++)
         {
             Chr0Bone bone = source.Bones[n];
             Transform transform;
             if (!targets.TryGetValue(bone.Name, out transform)) continue;
             string path = paths[bone.Name];
-            Vector3 bindPos = transform.localPosition;
+            Vector3 unityBindPos = transform.localPosition;
+            Vector3 bindPos = unityBindPos;
             if (axis == 0) bindPos.x = -bindPos.x; // Reverse glTFast 4+ reflection.
             if (axis == 1) bindPos.z = -bindPos.z; // Reverse legacy reflection.
             Vector3 bindScale = transform.localScale;
@@ -294,6 +322,21 @@ public sealed class CHR0ToUnityAnimConverter : EditorWindow
                     y[f] = bone.Value(7, f, bindPos.y / positionScale) * positionScale;
                     float nativeZ = bone.Value(8, f, bindPos.z / positionScale);
                     z[f] = (axis == 1 ? -nativeZ : nativeZ) * positionScale;
+                }
+                // Optional retargeting for animation-only archives whose
+                // first-frame translations are offsets from the model's rest pose.
+                // The first sample is anchored exactly to the selected rig's
+                // local rest position, and frame-to-frame motion is preserved.
+                if (rebaseTranslation &&
+                    (rebaseBones.Count == 0 || rebaseBones.Contains(bone.Name)))
+                {
+                    float firstX = x[0], firstY = y[0], firstZ = z[0];
+                    for (int f = 0; f < count; f++)
+                    {
+                        x[f] = unityBindPos.x + (x[f] - firstX);
+                        y[f] = unityBindPos.y + (y[f] - firstY);
+                        z[f] = unityBindPos.z + (z[f] - firstZ);
+                    }
                 }
                 WriteCurve(bindings, curves, path, "m_LocalPosition.x", x, fps);
                 WriteCurve(bindings, curves, path, "m_LocalPosition.y", y, fps);

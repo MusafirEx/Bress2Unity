@@ -1,6 +1,8 @@
 # Bress2Unity — BRRES / CHR0 Importer (Unity UPM)
 
-**Version 0.8.0-preview.6 — Unity 2022.3 LTS, Editor-only**
+**Version 0.8.0-preview.7 — Unity 2022.3 LTS, Editor-only**
+
+**External CHR0 rig binding (preview.7):** On animation-only BRRES such as `mot_em028.brres`, set **Animations → External Animation Rig** to the matching imported `em028.brres` model asset. If the model prefab wraps an Animator child, the imported clip binds relative to that Animator automatically (not `em028/...`). If `AR-00` / `AR-01` jump away from their rest positions, set **Translation Position Mode** to **Align First Frame To Rest Pose**, and **Align These Bones** to `AR-00, AR-01`. The alignment is opt-in and changes position only, preserving each track's frame-to-frame displacement. Press **Apply** to regenerate clips. For `mot_em029` use `em029` analogously.
 
 Texture-only BRRES archives import their supported TEX0 images as named `Texture2D` sub-assets. Expand the BRRES in the Project window to use them in materials.
 

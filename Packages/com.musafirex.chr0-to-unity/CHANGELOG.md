@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0-preview.7] - 2026-11-24
+
+- Fix CHR0-only BRRES external-rig binding when an imported BRRES prefab wraps a single Animator on its nested MDL0 child: generate curve paths relative to that Animator, avoiding an extra `em028/` path prefix.
+- Add opt-in **Align First Frame To Rest Pose** translation correction for specified bones (default filter `AR-00, AR-01`). At frame 0 the curve matches the external rig's bone rest position; subsequent translation deltas are preserved. Absolute CHR0 values remain the default.
+- Use the linked external BRRES rig's Scale for CHR0 translation keys, and track that rig asset as an import dependency.
+- Increase ScriptedImporter revision to 10 to regenerate affected clips. Validate `mot_em028` with `em028` and `mot_em029` with `em029` in Unity after package update; preview status is not a Unity playback guarantee.
+
 ## [0.8.0-preview.6] - 2026-11-24
 
 - Import supported TEX0 textures from BRRES archives without a model or animation. Expand the asset in the Project window to find its named textures.

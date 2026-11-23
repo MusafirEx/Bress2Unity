@@ -500,6 +500,14 @@ namespace MusafirEx.Brres
             Prop("animationFps","Sample Frame Rate");
             Prop("animationAxis","Axis Conversion (0=X, 1=Z, 2=None)");
             Prop("animationLoop","Copy Source Loop Settings");
+            Prop("animationTranslationMode","Translation Position Mode");
+            SerializedProperty translationMode=serializedObject.FindProperty("animationTranslationMode");
+            if(translationMode!=null && !translationMode.hasMultipleDifferentValues &&
+               (BrresChr0TranslationMode)translationMode.enumValueIndex==BrresChr0TranslationMode.AlignFirstFrameToRestPose)
+            {
+                Prop("animationRestPoseBones","Align These Bones");
+                EditorGUILayout.HelpBox("For mot_em028 / mot_em029, assign the matching em028 / em029 model asset in External Animation Rig, then align AR-00, AR-01. This preserves their motion relative to frame 0 while keeping their model rest positions. Empty names align all translated bones. Do not enable for normal absolute-position CHR0 clips.",MessageType.Info);
+            }
             EditorGUILayout.HelpBox("CHR0-only BRRES archives are still supported. If the rig is in a separate BRRES, assign its model prefab above or use Tools > MH > CHR0 from BRRES.",MessageType.Info);
         }
     }
