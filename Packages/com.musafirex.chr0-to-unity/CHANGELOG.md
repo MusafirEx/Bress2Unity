@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0-preview.9] - 2026-11-24
+
+- Add Tools > MH > CHR0 Playback & Binding Audit for external clips e028_001 / e029_001. Finds a matching Scene Animator and checks curve paths, changing curves, Avatar validity and controller assignment.
+- Add an Edit Mode sample preview and a one-click Create + Assign Test Animator Controller for the nested Scene Animator (stored under Assets/CHR0AnimationTests).
+- No changes to source animation curves, model importer, or CHR0 decoding. Unity Editor compilation and actual playback still require validation.
+
 ## [0.8.0-preview.8] - 2026-11-24
 
 - Fix Unity Refresh-loop reimport errors for external CHR0 rigs (reported for `em001.brres`, `em010.brres`, `em027.brres`). Stop calling `AssetImporter.GetAtPath` inside `OnImportAsset` for the external BRRES model.

@@ -4,7 +4,7 @@
 
 [![Unity 2022.3](https://img.shields.io/badge/Unity-2022.3%20LTS-222222)](https://unity.com/releases/editor/whats-new/2022.3)
 [![UPM Git package](https://img.shields.io/badge/UPM-Git%20package-blue)](https://docs.unity3d.com/2022.3/Documentation/Manual/upm-ui-giturl.html)
-[![Version](https://img.shields.io/badge/version-0.8.0--preview.8-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
+[![Version](https://img.shields.io/badge/version-0.8.0--preview.9-orange)](Packages/com.musafirex.chr0-to-unity/package.json)
 
 Import Nintendo Wii **BRRES / MDL0** models, their embedded **TEX0** textures, skeletons, basic materials, and **CHR0** animations directly into Unity. Bress2Unity is an **Editor-only preview** package: some Wii formats and exact GX/TEV rendering are not yet supported.
 
@@ -18,7 +18,7 @@ https://github.com/MusafirEx/Bress2Unity.git?path=/Packages/com.musafirex.chr0-t
 
 The Git URL above is **for Unity Package Manager, not a web page to open in the browser**. You must have [Git](https://git-scm.com/downloads) installed and accessible on `PATH`.
 
-**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.8`
+**Package ID:** `com.musafirex.chr0-to-unity` · **Unity:** 2022.3 LTS · **Package version:** `0.8.0-preview.9`
 
 Alternatively, add this entry **inside the existing `dependencies` object** in your Unity project's `Packages/manifest.json`:
 
@@ -71,6 +71,10 @@ The underlying serialized property is still `unitsToMeters`, so previously confi
 - **Separate model/animation files:** Place the model in a Scene and use **Tools → MH → CHR0 from BRRES...**; select the appropriate model hierarchy, analyze the clips, then export `.anim` files.
 
 Only supported **CHR0 v5** animations are decoded by the current importer; SRT0, PAT0 and VIS0 are not automatically converted.
+
+### Diagnose and play separate CHR0 clips
+
+Select `e028_001` from `mot_em028.brres`, then open **Tools → MH → CHR0 Playback & Binding Audit...**. Choose **Find Matching Scene Animator**, then **Audit Bone Bindings**. The imported Scene model contains an outer `em028` object and an inner `em028` with the Animator; the latter is the clip playback target. **Preview Sample** applies motion in Edit Mode without a controller. For Play Mode, select **Create + Assign Test Animator Controller** to create an asset in `Assets/CHR0AnimationTests` and assign it to the nested Scene Animator. The action changes the Scene instance, not the original BRRES data. Use Undo to revert the Animator assignment.
 
 ### Animation-only BRRES with a matching external model
 
